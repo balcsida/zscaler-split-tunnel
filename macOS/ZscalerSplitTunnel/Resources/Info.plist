@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.zscaler-split-tunnel.app</string>
+	<key>CFBundleName</key>
+	<string>Zscaler Split Tunnel</string>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>SMPrivilegedExecutables</key>
+	<dict>
+		<key>com.zscaler-split-tunnel.helper</key>
+		<string>identifier "com.zscaler-split-tunnel.helper" and anchor apple generic</string>
+	</dict>
+</dict>
+</plist>

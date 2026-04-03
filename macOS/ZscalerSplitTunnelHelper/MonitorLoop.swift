@@ -1,0 +1,240 @@
+import Foundation
+import os
+
+final class MonitorLoop: @unchecked Sendable {
+    private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "MonitorLoop")
+    private let configLoader: ConfigLoader
+
+    let officeDetector = OfficeNetworkDetector()
+
+    init() {
+        self.configLoader = ConfigLoader(
+            dnsResolver: DNSResolver(cacheURL: ConfigPaths.consoleUserDomainCache),
+            remoteFetcher: RemoteRouteFetcher(cacheURL: ConfigPaths.consoleUserRemoteRouteCache)
+        )
+    }
+
+    private var timer: DispatchSourceTimer?
+    private let queue = DispatchQueue(label: "com.zscaler-split-tunnel.helper.monitor", qos: .utility)
+    private(set) var isRunning = false
+    private(set) var interval: Int = AppConstants.defaultMonitorInterval
+    private var lastNetworkSignature: String?
+    private var lastConfigSignature: String?
+    private var lastBypassGateway: String?
+
+    private(set) var customRouteCount: Int = 0
+    private(set) var bypassRouteCount: Int = 0
+    private(set) var lastRefresh: Date?
+    private(set) var officeMode: OfficeMode = .disabled
+    var officeSwitchName: String? { officeDetector.lastDiscoveredDevice?.systemName ?? officeDetector.lastDiscoveredDevice?.deviceId }
+
+    func start(interval: Int) {
+        guard !isRunning else {
+            logger.info("Monitor already running")
+            return
+        }
+        self.interval = interval
+        isRunning = true
+        lastNetworkSignature = NetworkDetector.getNetworkSignature()
+        logger.info("Starting route monitoring (interval: \(interval)s)")
+
+        // Load and start office mode detection
+        officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
+        officeDetector.start()
+
+        // Run initial cycle on background queue
+        queue.async { [weak self] in
+            self?.runCycle()
+        }
+
+        // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
+        let t = DispatchSource.makeTimerSource(queue: queue)
+        t.schedule(deadline: .now() + .seconds(interval), repeating: .seconds(interval))
+        t.setEventHandler { [weak self] in
+            self?.runCycle()
+        }
+        t.resume()
+        timer = t
+    }
+
+    func stop() {
+        timer?.cancel()
+        timer = nil
+        isRunning = false
+        officeDetector.stop()
+        logger.info("Stopped route monitoring")
+    }
+
+    func refresh() {
+        logger.info("Manual refresh triggered")
+        queue.async { [weak self] in
+            self?.handleNetworkChange()
+        }
+    }
+
+    // MARK: - Private
+
+    private func runCycle() {
+        // Evaluate office mode
+        officeMode = officeDetector.evaluate()
+
+        // Check for network changes
+        let currentSignature = NetworkDetector.getNetworkSignature()
+        if let last = lastNetworkSignature, currentSignature != last {
+            logger.info("Network changed from '\(last)' to '\(currentSignature)'")
+            lastNetworkSignature = currentSignature
+            handleNetworkChange()
+            return
+        }
+        lastNetworkSignature = currentSignature
+
+        // Check for config changes
+        if configHasChanged() {
+            logger.info("Configuration file changed, reloading...")
+            configLoader.clearCaches()
+            officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
+            officeMode = officeDetector.evaluate()
+            reloadAndApplyRoutes()
+        } else {
+            // Check if bypass gateway changed (office mode transition)
+            let currentBypassGateway = resolveBypassGateway()
+            if currentBypassGateway != lastBypassGateway, lastBypassGateway != nil {
+                logger.info("Bypass gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing bypass routes")
+                reloadAndApplyRoutes()
+            } else {
+                _ = BroadRouteManager.removeBroadRoutes()
+                addCustomRoutes()
+                addBypassRoutes()
+            }
+        }
+
+        lastRefresh = Date()
+    }
+
+    private func handleNetworkChange() {
+        logger.info("Network change detected! Refreshing all routes...")
+        DNSFlush.flush()
+        configLoader.clearCaches()
+        lastConfigSignature = nil
+        lastBypassGateway = nil
+
+        // Restart office detection on new network
+        officeDetector.stop()
+        officeDetector.start()
+        officeMode = officeDetector.evaluate()
+
+        reloadAndApplyRoutes()
+        lastRefresh = Date()
+    }
+
+    private func reloadAndApplyRoutes() {
+        _ = BroadRouteManager.removeBroadRoutes()
+
+        let customRoutes = configLoader.loadRoutes(
+            defaultFile: ConfigPaths.defaultRoutesConfig,
+            userFile: ConfigPaths.consoleUserRoutesConfig
+        )
+        let bypassRoutes = configLoader.loadBypassRoutes(
+            defaultFile: ConfigPaths.defaultBypassConfig,
+            userFile: ConfigPaths.consoleUserBypassConfig
+        )
+
+        customRouteCount = customRoutes.count
+        bypassRouteCount = bypassRoutes.count
+
+        addRoutes(customRoutes, bypass: false)
+        addRoutes(bypassRoutes, bypass: true)
+    }
+
+    private func addCustomRoutes() {
+        let routes = configLoader.loadRoutes(
+            defaultFile: ConfigPaths.defaultRoutesConfig,
+            userFile: ConfigPaths.consoleUserRoutesConfig
+        )
+        customRouteCount = routes.count
+        addRoutes(routes, bypass: false)
+    }
+
+    private func addBypassRoutes() {
+        let routes = configLoader.loadBypassRoutes(
+            defaultFile: ConfigPaths.defaultBypassConfig,
+            userFile: ConfigPaths.consoleUserBypassConfig
+        )
+        bypassRouteCount = routes.count
+        addRoutes(routes, bypass: true)
+    }
+
+    /// Resolves the gateway to use for bypass routes, considering office mode.
+    private func resolveBypassGateway() -> String? {
+        if officeMode == .officeWifi, let wifiGW = officeDetector.wifiGateway {
+            return wifiGW
+        }
+        return RouteEngine.getDefaultGateway()
+    }
+
+    private func addRoutes(_ routes: [String], bypass: Bool) {
+        if bypass {
+            let gateway = resolveBypassGateway()
+            guard let gateway else {
+                logger.error("Cannot add bypass routes: no gateway available")
+                return
+            }
+
+            if officeMode == .officeWifi {
+                logger.info("Routing \(routes.count) bypass routes via WiFi gateway \(gateway)")
+            }
+
+            lastBypassGateway = gateway
+
+            for route in routes {
+                let isIPv6 = IPValidator.isIPv6(route)
+                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                    _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
+                }
+            }
+        } else {
+            guard let iface = RouteEngine.detectZscalerInterface() else {
+                logger.error("Cannot add custom routes: Zscaler interface not detected")
+                return
+            }
+            for route in routes {
+                let isIPv6 = IPValidator.isIPv6(route)
+                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                    _ = RouteEngine.addRoute(destination: route, interface: iface, isIPv6: isIPv6)
+                }
+            }
+        }
+    }
+
+    private func configHasChanged() -> Bool {
+        var trackedFiles = [
+            ConfigPaths.consoleUserRoutesConfig,
+            ConfigPaths.consoleUserBypassConfig,
+            ConfigPaths.consoleUserOfficeModeConfig,
+        ]
+        if let legacyRoutes = ConfigPaths.consoleUserLegacyRoutesConfig {
+            trackedFiles.append(legacyRoutes)
+        }
+        if let legacyBypass = ConfigPaths.consoleUserLegacyBypassConfig {
+            trackedFiles.append(legacyBypass)
+        }
+
+        var signature = ""
+        let fm = FileManager.default
+        for file in trackedFiles {
+            if let attrs = try? fm.attributesOfItem(atPath: file.path),
+               let mtime = attrs[.modificationDate] as? Date {
+                signature += "\(file.path):\(mtime.timeIntervalSince1970);"
+            } else {
+                signature += "\(file.path):missing;"
+            }
+        }
+
+        defer { lastConfigSignature = signature }
+
+        if let last = lastConfigSignature {
+            return signature != last
+        }
+        return false
+    }
+}

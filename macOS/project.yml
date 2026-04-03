@@ -1,0 +1,72 @@
+name: ZscalerSplitTunnel
+options:
+  bundleIdPrefix: com.zscaler-split-tunnel
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  ZscalerSplitTunnel:
+    type: application
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnel
+        excludes:
+          - "Resources/Info.plist"
+          - "Resources/ZscalerSplitTunnel.entitlements"
+          - "Resources/Assets.xcassets"
+      - path: Shared
+    resources:
+      - path: ZscalerSplitTunnel/Resources/Assets.xcassets
+      - path: ../config
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app
+        INFOPLIST_FILE: ZscalerSplitTunnel/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: ZscalerSplitTunnel/Resources/ZscalerSplitTunnel.entitlements
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        COMBINE_HIDPI_IMAGES: "YES"
+        ENABLE_HARDENED_RUNTIME: "YES"
+        PRODUCT_NAME: "Zscaler Split Tunnel"
+        GENERATE_INFOPLIST_FILE: "NO"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: ZscalerSplitTunnelHelper
+        embed: false
+      - sdk: Network.framework
+      - sdk: ServiceManagement.framework
+    postBuildScripts:
+      - name: "Copy Helper and Daemon Plist"
+        script: |
+          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices"
+          cp "${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/" 2>/dev/null || true
+          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons"
+          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist" 2>/dev/null || true
+        basedOnDependencyAnalysis: false
+
+  ZscalerSplitTunnelHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnelHelper
+        excludes:
+          - "*.plist"
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper
+        INFOPLIST_FILE: ZscalerSplitTunnelHelper/Info.plist
+        PRODUCT_NAME: com.zscaler-split-tunnel.helper
+        SKIP_INSTALL: "YES"
+        ENABLE_HARDENED_RUNTIME: "YES"
+        GENERATE_INFOPLIST_FILE: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: ZscalerSplitTunnelHelper/BridgingHeader.h
+        OTHER_LDFLAGS: ["-sectcreate", "__TEXT", "__launchd_plist", "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist", "-lpcap"]

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zscaler Split Tunnel for macOS</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #1c2333;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --green: #3fb950;
+      --orange: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Nav */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+    }
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    nav .logo {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+    nav .logo span { color: var(--accent); }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--text); }
+
+    @media (max-width: 700px) {
+      nav ul { display: none; }
+    }
+
+    /* Sections */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+    section + section { padding-top: 2rem; }
+
+    h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 6rem 1.5rem 3rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+      background: var(--bg-secondary);
+    }
+
+    /* Demo */
+    .demo {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    .demo video {
+      width: 100%;
+      max-width: 900px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .feature-card .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+    .feature-card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+    }
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      margin: 1rem 0;
+    }
+    pre code { color: var(--text); }
+    .code-comment { color: var(--text-muted); }
+    .code-cmd { color: var(--green); }
+    .code-flag { color: var(--orange); }
+    .code-string { color: var(--accent); }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .code-title {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Install box */
+    .install-box {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-top: 1.5rem;
+    }
+    .install-box pre {
+      margin-bottom: 0;
+    }
+    .install-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .install-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .step-num {
+      background: var(--accent);
+      color: var(--bg);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .install-step p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .install-step code {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      background: var(--bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* Usage columns */
+    .usage-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .usage-grid { grid-template-columns: 1fr; }
+    }
+    .usage-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .usage-card h3 { margin-bottom: 0.75rem; }
+    .usage-card pre {
+      margin: 0;
+      border: none;
+      background: var(--bg);
+      font-size: 0.8rem;
+    }
+
+    /* How it works */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .step {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      position: relative;
+    }
+    .step-number {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      opacity: 0.3;
+      position: absolute;
+      top: 0.75rem;
+      right: 1rem;
+    }
+    .step h3 { font-size: 0.95rem; }
+    .step p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Config reference */
+    .config-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+    }
+    .config-table th,
+    .config-table td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .config-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .config-table td code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+    .config-table tr:last-child td { border-bottom: none; }
+    .table-wrap {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 1rem;
+      overflow-x: auto;
+    }
+
+    /* Troubleshoot */
+    .troubleshoot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .troubleshoot-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+    }
+    .troubleshoot-item h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+    .troubleshoot-item pre {
+      margin: 0.5rem 0 0;
+      font-size: 0.8rem;
+      border: none;
+      background: var(--bg);
+    }
+    .troubleshoot-item p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    /* Inline code */
+    p code, li code {
+      font-family: var(--mono);
+      font-size: 0.85em;
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo"><span>$</span> zscaler-split-tunnel</a>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#usage">Usage</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#config">Config</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Zscaler <span>Split Tunnel</span> for macOS</h1>
+    <p>Route only the traffic you need through Zscaler. Everything else goes direct. Fast internet, full security where it matters.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/balcsida/zscaler-split-tunnel" class="btn btn-primary">View on GitHub</a>
+      <a href="#install" class="btn btn-secondary">Quick Install</a>
+    </div>
+  </section>
+
+  <!-- Demo -->
+  <section class="demo">
+    <video src="screen-capture.webm" controls muted playsinline preload="metadata"></video>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="section-label">Features</div>
+    <h2>Everything you need for split tunneling</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="icon">&#x1F504;</span>
+        <h3>Automatic Route Management</h3>
+        <p>Continuously removes Zscaler's broad routes that capture all internet traffic, keeping your connection fast.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x1F3AF;</span>
+        <h3>Custom Route Configuration</h3>
+        <p>Route specific domains, IPs, or CIDR ranges through Zscaler while the rest goes direct.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x26A1;</span>
+        <h3>Automatic Config Reload</h3>
+        <p>Configuration changes are applied immediately while the daemon runs on a low-frequency cadence.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x1F9E0;</span>
+        <h3>Smart Zscaler Management</h3>
+        <p>Starts Zscaler only when needed and manages its lifecycle intelligently.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x1F310;</span>
+        <h3>Domain Resolution</h3>
+        <p>Automatically resolves domains to IP addresses with caching for fast lookups.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x1F47B;</span>
+        <h3>Daemon Mode</h3>
+        <p>Runs silently in the background to maintain your split tunnel configuration.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">&#x1F680;</span>
+        <h3>Autostart Support</h3>
+        <p>Optional launchd job keeps the daemon running after reboots. Set it and forget it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section id="install">
+    <div class="section-label">Getting started</div>
+    <h2>Quick Install</h2>
+    <div class="install-box">
+      <div class="install-steps">
+        <div class="install-step">
+          <span class="step-num">1</span>
+          <p>Make sure <code>gh</code> CLI is installed and authenticated with GitHub Enterprise.</p>
+        </div>
+        <div class="install-step">
+          <span class="step-num">2</span>
+          <p>Clone the repo, install the script, and start the daemon.</p>
+        </div>
+      </div>
+      <div class="code-header"><span class="code-title">Terminal</span></div>
+      <pre><code><span class="code-comment"># Set up Git access (if not already done)</span>
+<span class="code-cmd">brew install</span> gh
+<span class="code-cmd">gh auth</span> setup-git
+<span class="code-cmd">gh auth</span> login <span class="code-flag">-cwp</span> https
+
+<span class="code-comment"># Clone and install</span>
+<span class="code-cmd">git clone</span> <span class="code-string">https://github.com/balcsida/zscaler-split-tunnel.git</span> <span class="code-cmd">&amp;&amp;</span> <span class="code-cmd">cd</span> zscaler-split-tunnel
+
+<span class="code-cmd">chmod</span> +x zscaler-split-tunnel.sh <span class="code-cmd">&amp;&amp;</span> \
+<span class="code-cmd">sudo mkdir</span> <span class="code-flag">-p</span> /usr/local/bin <span class="code-cmd">&amp;&amp;</span> \
+<span class="code-cmd">sudo cp</span> zscaler-split-tunnel.sh /usr/local/bin/zscaler-split-tunnel <span class="code-cmd">&amp;&amp;</span> \
+<span class="code-cmd">sudo chmod</span> +x /usr/local/bin/zscaler-split-tunnel <span class="code-cmd">&amp;&amp;</span> \
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--add</span> internal.company.com
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--start</span></code></pre>
+    </div>
+  </section>
+
+  <!-- Usage -->
+  <section id="usage">
+    <div class="section-label">Usage</div>
+    <h2>Commands</h2>
+    <div class="usage-grid">
+      <div class="usage-card">
+        <h3>Basic Commands</h3>
+        <pre><code><span class="code-comment"># Start split tunneling</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--start</span>
+
+<span class="code-comment"># Stop the daemon</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--stop</span>
+
+<span class="code-comment"># Kill Zscaler completely</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--kill</span>
+
+<span class="code-comment"># Check status</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--status</span>
+
+<span class="code-comment"># Show all routes</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--list</span></code></pre>
+      </div>
+      <div class="usage-card">
+        <h3>Configuration Management</h3>
+        <pre><code><span class="code-comment"># Add entries to route through Zscaler</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--add</span> example.com
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--add</span> 192.168.1.0/24
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--add</span> 10.0.0.5
+
+<span class="code-comment"># Remove an entry</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--remove</span> example.com
+
+<span class="code-comment"># Show current config</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--show-config</span>
+
+<span class="code-comment"># Clear all custom routes</span>
+<span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--clear-config</span></code></pre>
+      </div>
+      <div class="usage-card">
+        <h3>Advanced Options</h3>
+        <pre><code><span class="code-comment"># Custom check interval (seconds)</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--start</span> <span class="code-flag">--interval</span> 5
+
+<span class="code-comment"># Enable verbose logging</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--start</span> <span class="code-flag">--verbose</span>
+
+<span class="code-comment"># Run daemon directly (debugging)</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--daemon</span> <span class="code-flag">--verbose</span></code></pre>
+      </div>
+      <div class="usage-card">
+        <h3>Autostart on Boot</h3>
+        <pre><code><span class="code-comment"># Enable autostart via launchd</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--enable-autostart</span>
+
+<span class="code-comment"># Disable autostart</span>
+<span class="code-cmd">sudo</span> zscaler-split-tunnel <span class="code-flag">--disable-autostart</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works">
+    <div class="section-label">Under the hood</div>
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        <h3>Broad Route Removal</h3>
+        <p>Removes Zscaler's broad routes (like 1.0.0.0/8, 2.0.0.0/7) that capture most internet traffic.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <h3>Custom Routes</h3>
+        <p>Adds specific routes for your configured domains and IPs through the Zscaler tunnel interface.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <h3>Continuous Monitoring</h3>
+        <p>Runs as a daemon on a 5-minute interval to keep routes tidy without burning CPU.</p>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <h3>Instant Reload</h3>
+        <p>Signals the daemon to reload instantly whenever configuration files change.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Configuration Reference -->
+  <section id="config">
+    <div class="section-label">Reference</div>
+    <h2>Configuration</h2>
+    <p style="color: var(--text-muted); margin-bottom: 0.5rem;">Defaults are versioned in the repository so the team shares the same baseline. User-specific overrides live in <code>~/.config/zscaler-split-tunnel/</code>.</p>
+
+    <div class="table-wrap">
+      <table class="config-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>config/zscaler-split-tunnel.conf</code></td>
+            <td>Default routes forced through Zscaler</td>
+          </tr>
+          <tr>
+            <td><code>config/zscaler-bypass.conf</code></td>
+            <td>Default routes that skip Zscaler</td>
+          </tr>
+          <tr>
+            <td><code>~/.config/.../routes.conf</code></td>
+            <td>User-specific route overrides</td>
+          </tr>
+          <tr>
+            <td><code>~/.config/.../bypass.conf</code></td>
+            <td>User-specific bypass overrides</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top: 1.5rem;">Files and Logs</h3>
+    <div class="table-wrap">
+      <table class="config-table">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/tmp/zscaler-split-tunnel.log</code></td>
+            <td>Runtime log file</td>
+          </tr>
+          <tr>
+            <td><code>/tmp/zscaler-split-tunnel.pid</code></td>
+            <td>PID file for the daemon</td>
+          </tr>
+          <tr>
+            <td><code>/tmp/zscaler-domain-cache.txt</code></td>
+            <td>Domain-to-IP resolution cache</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top: 1.5rem;">Example Override File</h3>
+    <pre><code><span class="code-comment"># Routes to force through Zscaler</span>
+internal.company.com
+vpn.company.com
+192.168.100.0/24
+10.0.0.50</code></pre>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.5rem;">Changes are written to disk immediately and the running daemon reloads the new configuration right away.</p>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section id="troubleshooting">
+    <div class="section-label">Help</div>
+    <h2>Troubleshooting</h2>
+    <div class="troubleshoot-list">
+      <div class="troubleshoot-item">
+        <h3>Check if split tunneling is active</h3>
+        <pre><code><span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--status</span></code></pre>
+      </div>
+      <div class="troubleshoot-item">
+        <h3>View detailed routes</h3>
+        <pre><code><span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--list</span></code></pre>
+      </div>
+      <div class="troubleshoot-item">
+        <h3>Check the logs</h3>
+        <pre><code><span class="code-cmd">tail</span> <span class="code-flag">-f</span> /tmp/zscaler-split-tunnel.log</code></pre>
+      </div>
+      <div class="troubleshoot-item">
+        <h3>Verify a domain is routed through Zscaler</h3>
+        <pre><code><span class="code-cmd">route get</span> $(<span class="code-cmd">dig</span> +short example.com | <span class="code-cmd">head</span> <span class="code-flag">-1</span>)</code></pre>
+      </div>
+      <div class="troubleshoot-item">
+        <h3>If a site isn't loading</h3>
+        <p>Run these commands to diagnose the issue:</p>
+        <pre><code><span class="code-comment"># 1. Check DNS resolution</span>
+<span class="code-cmd">dig</span> +short yourdomain.com
+
+<span class="code-comment"># 2. Verify the route</span>
+<span class="code-cmd">netstat</span> <span class="code-flag">-rn</span> | <span class="code-cmd">grep</span> &lt;ip-address&gt;
+
+<span class="code-comment"># 3. Test connectivity</span>
+<span class="code-cmd">curl</span> <span class="code-flag">-I</span> https://yourdomain.com</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Requirements -->
+  <section>
+    <div class="section-label">Requirements</div>
+    <h2>System Requirements</h2>
+    <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="feature-card">
+        <h3>macOS</h3>
+        <p>Tested on macOS 15.5</p>
+      </div>
+      <div class="feature-card">
+        <h3>Zscaler Client</h3>
+        <p>Must be installed on the system</p>
+      </div>
+      <div class="feature-card">
+        <h3>Admin Privileges</h3>
+        <p>Required for route management</p>
+      </div>
+      <div class="feature-card">
+        <h3>CLI Tools</h3>
+        <p>netstat, route, dig, curl (standard macOS)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>Zscaler Split Tunnel &mdash; <a href="https://github.com/balcsida/zscaler-split-tunnel">View source on GitHub</a></p>
+  </footer>
+
+</body>
+</html>
