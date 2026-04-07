@@ -96,7 +96,7 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
             bypassRouteCount: monitorLoop.bypassRouteCount,
             lastRefresh: monitorLoop.lastRefresh,
             networkSignature: NetworkDetector.getNetworkSignature(),
-            version: "1.0",
+            version: BuildInfo.gitCommitSHA,
             officeMode: monitorLoop.officeMode,
             officeSwitchName: monitorLoop.officeSwitchName,
             officeWifiGateway: monitorLoop.officeDetector.wifiGateway,
@@ -130,6 +130,6 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func getVersion(reply: @escaping (String) -> Void) {
-        reply("1.0")
+        reply(BuildInfo.gitCommitSHA)
     }
 }
