@@ -26,15 +26,28 @@ final class AppState {
     }
 
     func installHelper() {
-        let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
-        do {
-            // Unregister first to force macOS to pick up the new binary
-            try? service.unregister()
-            try service.register()
-            isHelperInstalled = true
-            errorMessage = nil
-        } catch {
-            errorMessage = "Helper install failed: \(error.localizedDescription)"
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
+            do {
+                // Unregister first to force macOS to pick up the new binary
+                if service.status == .enabled {
+                    try await service.unregister()
+                    await helperConnection.resetConnection()
+                    // Wait for launchd to fully tear down the daemon
+                    try await Task.sleep(for: .seconds(2))
+                }
+                try service.register()
+                isHelperInstalled = true
+                errorMessage = nil
+            } catch {
+                errorMessage = "Helper install failed: \(error.localizedDescription)"
+                isHelperInstalled = service.status == .enabled
+            }
+            isLoading = false
         }
     }
 

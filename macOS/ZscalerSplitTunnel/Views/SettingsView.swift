@@ -49,6 +49,7 @@ struct GeneralSettingsTab: View {
                 Button("Reinstall Helper") {
                     appState.installHelper()
                 }
+                .disabled(appState.isLoading)
             }
 
             Section("Monitoring") {
