@@ -100,7 +100,13 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
             officeMode: monitorLoop.officeMode,
             officeSwitchName: monitorLoop.officeSwitchName,
             officeWifiGateway: monitorLoop.officeDetector.wifiGateway,
-            discoveredDevice: monitorLoop.lastDiscoveredDevice?.toInfo()
+            discoveredDevice: monitorLoop.lastDiscoveredDevice?.toInfo(),
+            captureStatus: HelperStatus.CaptureStatus(
+                activeInterfaces: monitorLoop.activeCapureInterfaces,
+                allEthernetInterfaces: monitorLoop.allEthernetInterfaces,
+                wifiInterface: monitorLoop.wifiInterface,
+                errors: monitorLoop.captureErrors
+            )
         )
 
         do {

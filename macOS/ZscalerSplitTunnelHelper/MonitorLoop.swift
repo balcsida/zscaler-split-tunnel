@@ -28,6 +28,10 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var officeMode: OfficeMode = .disabled
     private(set) var lastDiscoveredDevice: DiscoveredDevice?
     private var captures: [PacketCapture] = []
+    private(set) var captureErrors: [String] = []
+    private(set) var activeCapureInterfaces: [String] = []
+    private(set) var allEthernetInterfaces: [String] = []
+    private(set) var wifiInterface: String?
     var officeSwitchName: String? { lastDiscoveredDevice?.systemName ?? lastDiscoveredDevice?.deviceId }
 
     func start(interval: Int) {
@@ -141,26 +145,35 @@ final class MonitorLoop: @unchecked Sendable {
         stopCaptures()
 
         let wifiIface = WiFiDetector.wifiInterfaceName()
-        let interfaces = PacketCapture.listEthernetInterfaces()
-            .filter { $0 != wifiIface }
+        wifiInterface = wifiIface
+        let allInterfaces = PacketCapture.listEthernetInterfaces()
+        allEthernetInterfaces = allInterfaces
+        let interfaces = allInterfaces.filter { $0 != wifiIface }
 
         guard !interfaces.isEmpty else {
-            logger.info("No Ethernet interfaces found for CDP/LLDP capture")
+            logger.info("No Ethernet interfaces found for CDP/LLDP capture (all en*: \(allInterfaces), wifi: \(wifiIface ?? "none"))")
             return
         }
+
+        captureErrors = []
+        var started: [String] = []
 
         for iface in interfaces {
             let capture = PacketCapture(interfaceName: iface)
             capture.onDeviceDiscovered = { [weak self] device in
                 self?.handleDiscovery(device)
             }
-            capture.onError = { [self] error in
-                self.logger.warning("Capture error: \(error)")
+            capture.onError = { [weak self] error in
+                self?.logger.warning("Capture error on \(iface): \(error)")
+                self?.captureErrors.append("\(iface): \(error)")
             }
             capture.start()
             captures.append(capture)
+            started.append(iface)
             logger.info("Started CDP/LLDP capture on \(iface)")
         }
+
+        activeCapureInterfaces = started
     }
 
     private func stopCaptures() {
@@ -168,6 +181,7 @@ final class MonitorLoop: @unchecked Sendable {
             capture.stop()
         }
         captures.removeAll()
+        activeCapureInterfaces = []
     }
 
     private func handleDiscovery(_ device: DiscoveredDevice) {

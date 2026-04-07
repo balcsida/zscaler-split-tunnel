@@ -13,6 +13,10 @@ struct NetworkDeviceTab: View {
             }
 
             menuBarFieldsSection
+
+            if let capture = appState.helperStatus?.captureStatus {
+                diagnosticsSection(capture)
+            }
         }
         .formStyle(.grouped)
     }
@@ -189,6 +193,42 @@ struct NetworkDeviceTab: View {
                     set: { _ in appState.deviceFieldPreferences.toggle(field) }
                 )) {
                     Label(field.label, systemImage: field.icon)
+                }
+            }
+        }
+    }
+
+    // MARK: - Diagnostics
+
+    private func diagnosticsSection(_ capture: HelperStatus.CaptureStatus) -> some View {
+        Section("Capture Diagnostics") {
+            LabeledContent("All en* Interfaces") {
+                Text(capture.allEthernetInterfaces.isEmpty
+                     ? "None detected"
+                     : capture.allEthernetInterfaces.joined(separator: ", "))
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("WiFi Interface") {
+                Text(capture.wifiInterface ?? "None")
+                    .font(.system(.body, design: .monospaced))
+            }
+
+            LabeledContent("Capturing On") {
+                Text(capture.activeInterfaces.isEmpty
+                     ? "None"
+                     : capture.activeInterfaces.joined(separator: ", "))
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(capture.activeInterfaces.isEmpty ? .red : .green)
+            }
+
+            if !capture.errors.isEmpty {
+                ForEach(Array(capture.errors.enumerated()), id: \.offset) { _, error in
+                    LabeledContent("Error") {
+                        Text(error)
+                            .foregroundStyle(.red)
+                            .font(.system(.body, design: .monospaced))
+                    }
                 }
             }
         }
