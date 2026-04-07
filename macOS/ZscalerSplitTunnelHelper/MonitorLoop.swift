@@ -26,7 +26,9 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var bypassRouteCount: Int = 0
     private(set) var lastRefresh: Date?
     private(set) var officeMode: OfficeMode = .disabled
-    var officeSwitchName: String? { officeDetector.lastDiscoveredDevice?.systemName ?? officeDetector.lastDiscoveredDevice?.deviceId }
+    private(set) var lastDiscoveredDevice: DiscoveredDevice?
+    private var captures: [PacketCapture] = []
+    var officeSwitchName: String? { lastDiscoveredDevice?.systemName ?? lastDiscoveredDevice?.deviceId }
 
     func start(interval: Int) {
         guard !isRunning else {
@@ -38,9 +40,10 @@ final class MonitorLoop: @unchecked Sendable {
         lastNetworkSignature = NetworkDetector.getNetworkSignature()
         logger.info("Starting route monitoring (interval: \(interval)s)")
 
-        // Load and start office mode detection
+        // Load office mode config and start CDP/LLDP captures
         officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
         officeDetector.start()
+        startCaptures()
 
         // Run initial cycle on background queue
         queue.async { [weak self] in
@@ -61,7 +64,9 @@ final class MonitorLoop: @unchecked Sendable {
         timer?.cancel()
         timer = nil
         isRunning = false
+        stopCaptures()
         officeDetector.stop()
+        lastDiscoveredDevice = nil
         logger.info("Stopped route monitoring")
     }
 
@@ -118,14 +123,61 @@ final class MonitorLoop: @unchecked Sendable {
         lastConfigSignature = nil
         lastBypassGateway = nil
 
-        // Restart office detection on new network
+        // Restart captures and office detection on new network
+        stopCaptures()
         officeDetector.stop()
         officeDetector.start()
+        lastDiscoveredDevice = nil
+        startCaptures()
         officeMode = officeDetector.evaluate()
 
         reloadAndApplyRoutes()
         lastRefresh = Date()
     }
+
+    // MARK: - CDP/LLDP Capture
+
+    private func startCaptures() {
+        stopCaptures()
+
+        let wifiIface = WiFiDetector.wifiInterfaceName()
+        let interfaces = PacketCapture.listEthernetInterfaces()
+            .filter { $0 != wifiIface }
+
+        guard !interfaces.isEmpty else {
+            logger.info("No Ethernet interfaces found for CDP/LLDP capture")
+            return
+        }
+
+        for iface in interfaces {
+            let capture = PacketCapture(interfaceName: iface)
+            capture.onDeviceDiscovered = { [weak self] device in
+                self?.handleDiscovery(device)
+            }
+            capture.onError = { [self] error in
+                self.logger.warning("Capture error: \(error)")
+            }
+            capture.start()
+            captures.append(capture)
+            logger.info("Started CDP/LLDP capture on \(iface)")
+        }
+    }
+
+    private func stopCaptures() {
+        for capture in captures {
+            capture.stop()
+        }
+        captures.removeAll()
+    }
+
+    private func handleDiscovery(_ device: DiscoveredDevice) {
+        let name = device.displayTitle
+        logger.info("Discovered device: \(name) via \(device.protocolType.rawValue) on \(device.sourceInterface)")
+        lastDiscoveredDevice = device
+        officeDetector.handleDiscovery(device)
+    }
+
+    // MARK: - Routes
 
     private func reloadAndApplyRoutes() {
         _ = BroadRouteManager.removeBroadRoutes()

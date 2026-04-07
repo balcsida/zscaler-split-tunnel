@@ -100,7 +100,7 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
             officeMode: monitorLoop.officeMode,
             officeSwitchName: monitorLoop.officeSwitchName,
             officeWifiGateway: monitorLoop.officeDetector.wifiGateway,
-            discoveredDevice: monitorLoop.officeDetector.lastDiscoveredDevice?.toInfo()
+            discoveredDevice: monitorLoop.lastDiscoveredDevice?.toInfo()
         )
 
         do {

@@ -79,21 +79,21 @@ struct MenuBarView: View {
                         StatusRow(icon: "wifi", label: "WiFi GW",
                                   value: wifiGW)
                     }
+                }
 
-                    if let device = status.discoveredDevice {
-                        DisclosureGroup("Device Details") {
-                            ForEach(DeviceField.allCases.filter {
-                                appState.deviceFieldPreferences.isEnabled($0)
-                            }, id: \.self) { field in
-                                if let fieldValue = field.value(from: device) {
-                                    StatusRow(icon: field.icon, label: field.label,
-                                              value: fieldValue)
-                                }
+                if let device = status.discoveredDevice {
+                    DisclosureGroup("Device Details") {
+                        ForEach(DeviceField.allCases.filter {
+                            appState.deviceFieldPreferences.isEnabled($0)
+                        }, id: \.self) { field in
+                            if let fieldValue = field.value(from: device) {
+                                StatusRow(icon: field.icon, label: field.label,
+                                          value: fieldValue)
                             }
                         }
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
                     }
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 }
 
                 if let lastRefresh = status.lastRefresh {
