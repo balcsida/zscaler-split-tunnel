@@ -58,6 +58,41 @@ struct DiscoveredDevice: Identifiable {
         systemName ?? deviceId ?? chassisId ?? sourceMac
     }
 
+    /// Convert to the Codable DTO for XPC transport.
+    func toInfo() -> DiscoveredDeviceInfo {
+        DiscoveredDeviceInfo(
+            protocolType: protocolType.rawValue,
+            sourceInterface: sourceInterface,
+            sourceMac: sourceMac,
+            timestamp: timestamp,
+            deviceId: deviceId,
+            portId: portId,
+            portDescription: portDescription,
+            systemName: systemName,
+            systemDescription: systemDescription,
+            managementAddresses: managementAddresses,
+            capabilities: capabilities,
+            ttl: ttl,
+            platform: platform,
+            nativeVlan: nativeVlan,
+            duplex: duplex,
+            softwareVersion: softwareVersion,
+            vtpDomain: vtpDomain,
+            powerAvailable: powerAvailable,
+            chassisId: chassisId,
+            chassisIdSubtype: chassisIdSubtype,
+            portIdSubtype: portIdSubtype,
+            organizationalTLVs: organizationalTLVs.map {
+                DiscoveredDeviceInfo.OrganizationalTLVInfo(
+                    oui: $0.oui,
+                    subtype: $0.subtype,
+                    description: $0.description,
+                    value: $0.value
+                )
+            }
+        )
+    }
+
     /// A short summary line.
     var summary: String {
         var parts: [String] = []
