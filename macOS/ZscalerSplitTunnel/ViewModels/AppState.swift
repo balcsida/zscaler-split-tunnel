@@ -10,6 +10,7 @@ final class AppState {
     var splitTunnelState: SplitTunnelState = .unknown
     var errorMessage: String?
     var isLoading: Bool = false
+    let deviceFieldPreferences = DeviceFieldPreferences()
 
     let helperConnection = HelperConnection()
     let configService = ConfigService()
