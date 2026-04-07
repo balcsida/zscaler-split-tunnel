@@ -26,8 +26,11 @@ final class AppState {
     }
 
     func installHelper() {
+        let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
         do {
-            try SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist").register()
+            // Unregister first to force macOS to pick up the new binary
+            try? service.unregister()
+            try service.register()
             isHelperInstalled = true
             errorMessage = nil
         } catch {
