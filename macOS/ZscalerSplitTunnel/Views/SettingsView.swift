@@ -17,6 +17,10 @@ struct SettingsView: View {
                 .environment(appState)
                 .tabItem { Label("Bypass Routes", systemImage: "arrow.triangle.swap") }
 
+            NetworkDeviceTab()
+                .environment(appState)
+                .tabItem { Label("Network Device", systemImage: "wifi.router") }
+
             AdvancedSettingsTab()
                 .environment(appState)
                 .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
