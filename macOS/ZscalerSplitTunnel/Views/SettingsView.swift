@@ -3,12 +3,11 @@ import AppKit
 
 /// Renders an SF Symbol to a fixed-size NSImage to prevent macOS from
 /// re-rasterizing it on window active/inactive transitions (Apple bug).
-private func fixedTabIcon(_ systemName: String, size: CGFloat = 20) -> Image {
-    let config = NSImage.SymbolConfiguration(pointSize: size, weight: .regular)
+private func fixedTabIcon(_ systemName: String, pointSize: CGFloat = 20) -> Image {
+    let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
     let nsImage = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)!
         .withSymbolConfiguration(config)!
     nsImage.isTemplate = true
-    nsImage.size = NSSize(width: size, height: size)
     return Image(nsImage: nsImage)
 }
 
