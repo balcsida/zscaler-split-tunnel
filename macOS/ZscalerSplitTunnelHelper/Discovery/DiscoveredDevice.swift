@@ -9,7 +9,7 @@ enum DiscoveryProtocol: String, Codable {
 /// Represents a network device discovered via CDP or LLDP.
 struct DiscoveredDevice: Identifiable {
     let id = UUID()
-    let timestamp: Date
+    var timestamp: Date
     let sourceInterface: String
     let protocolType: DiscoveryProtocol
     let sourceMac: String
