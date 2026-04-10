@@ -3,12 +3,23 @@ import AppKit
 
 /// Renders an SF Symbol to a fixed-size NSImage to prevent macOS from
 /// re-rasterizing it on window active/inactive transitions (Apple bug).
-private func fixedTabIcon(_ systemName: String, pointSize: CGFloat = 20) -> Image {
-    let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
-    let nsImage = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)!
+/// Rasterizes an SF Symbol into a fixed-size bitmap so macOS cannot
+/// re-rasterize or stretch it on window state changes.
+private func fixedTabIcon(_ systemName: String, canvasSize: CGFloat = 24) -> Image {
+    let config = NSImage.SymbolConfiguration(pointSize: canvasSize * 0.75, weight: .regular)
+    let symbol = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)!
         .withSymbolConfiguration(config)!
-    nsImage.isTemplate = true
-    return Image(nsImage: nsImage)
+
+    let canvas = NSSize(width: canvasSize, height: canvasSize)
+    let result = NSImage(size: canvas, flipped: false) { rect in
+        let symbolSize = symbol.size
+        let x = (rect.width - symbolSize.width) / 2
+        let y = (rect.height - symbolSize.height) / 2
+        symbol.draw(in: NSRect(x: x, y: y, width: symbolSize.width, height: symbolSize.height))
+        return true
+    }
+    result.isTemplate = true
+    return Image(nsImage: result)
 }
 
 struct SettingsView: View {
