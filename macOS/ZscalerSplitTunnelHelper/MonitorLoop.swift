@@ -99,7 +99,15 @@ final class MonitorLoop: @unchecked Sendable {
         // Check for new/removed Ethernet interfaces (e.g. dock connected/disconnected)
         let currentInterfaces = Set(PacketCapture.listEthernetInterfaces())
         if currentInterfaces != Set(allEthernetInterfaces) {
+            let removed = Set(allEthernetInterfaces).subtracting(currentInterfaces)
             logger.info("Ethernet interfaces changed (\(self.allEthernetInterfaces) -> \(Array(currentInterfaces))), restarting captures")
+
+            // Clear cached device if its source interface was disconnected
+            if let deviceIface = lastDiscoveredDevice?.sourceInterface, removed.contains(deviceIface) {
+                logger.info("Clearing cached device (interface \(deviceIface) disconnected)")
+                lastDiscoveredDevice = nil
+            }
+
             stopCaptures()
             startCaptures()
         }
@@ -194,7 +202,15 @@ final class MonitorLoop: @unchecked Sendable {
     private func handleDiscovery(_ device: DiscoveredDevice) {
         let name = device.displayTitle
         logger.info("Discovered device: \(name) via \(device.protocolType.rawValue) on \(device.sourceInterface)")
-        lastDiscoveredDevice = device
+
+        // Merge into existing data if same interface, otherwise replace
+        if var existing = lastDiscoveredDevice, existing.sourceInterface == device.sourceInterface {
+            existing.merge(from: device)
+            lastDiscoveredDevice = existing
+        } else {
+            lastDiscoveredDevice = device
+        }
+
         officeDetector.handleDiscovery(device)
     }
 
