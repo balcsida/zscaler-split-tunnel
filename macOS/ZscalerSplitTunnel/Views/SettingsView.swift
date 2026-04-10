@@ -47,7 +47,7 @@ struct SettingsView: View {
                 .environment(appState)
                 .tabItem { Label { Text("Advanced") } icon: { fixedTabIcon("wrench.and.screwdriver") } }
         }
-        .frame(minWidth: 600, minHeight: 400)
+        .frame(minWidth: 600, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
     }
 }
 
