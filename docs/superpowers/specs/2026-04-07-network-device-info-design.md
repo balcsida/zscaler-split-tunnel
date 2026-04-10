@@ -8,23 +8,23 @@ The helper daemon already captures rich device data via CDP and LLDP parsers (`D
 
 ## Data Layer
 
-### Move `DiscoveredDevice` to Shared
+### DTO-based approach (`DiscoveredDeviceInfo`)
 
-Move `DiscoveredDevice.swift` (containing `DiscoveredDevice`, `DiscoveryProtocol`, `OrganizationalTLV`) from `ZscalerSplitTunnelHelper/Discovery/` to `Shared/`. Add `Codable` and `Sendable` conformance to all three types. Remove the `Identifiable` conformance and `id` stored properties (UUID doesn't round-trip well over JSON; the frontend can add its own identity if needed for SwiftUI lists).
+Instead of moving `DiscoveredDevice` to Shared, a separate `DiscoveredDeviceInfo` Codable DTO lives in `Shared/DiscoveredDeviceInfo.swift`. The helper-side `DiscoveredDevice` stays in `ZscalerSplitTunnelHelper/Discovery/` and provides a `toInfo()` method that converts to the DTO for XPC transport. This keeps the helper's mutable model (with `merge()`, `seenProtocols`, etc.) separate from the serialization boundary.
 
 ### Extend `HelperStatus`
 
 Add a new optional field to `HelperStatus`:
 
 ```swift
-var discoveredDevice: DiscoveredDevice?
+var discoveredDevice: DiscoveredDeviceInfo?
 ```
 
-Since `DiscoveredDevice` is now `Codable` and in `Shared/`, it serializes directly inside the existing `getStatus()` JSON round-trip. No new XPC methods needed.
+The DTO serializes inside the existing `getStatus()` JSON round-trip. No new XPC methods needed.
 
 ### Update `HelperTool.getStatus()`
 
-Populate `discoveredDevice` from `monitorLoop.officeDetector.lastDiscoveredDevice`. The existing `officeSwitchName` field remains for backwards compatibility (it's used by the existing office mode UI).
+Populate `discoveredDevice` from `monitorLoop.lastDiscoveredDevice?.toInfo()` via a synchronized `statusSnapshot()` call on MonitorLoop's queue. The `officeSwitchName` field is tracked separately and only updates when a device matches the configured office switch patterns.
 
 ## Menu Bar — Expandable Device Summary
 
@@ -99,11 +99,12 @@ The helper already collects `DiscoveredDevice`. The only helper change is includ
 
 | File | Change |
 |------|--------|
-| `Shared/DiscoveredDevice.swift` | New — moved from helper, add Codable/Sendable |
-| `Shared/XPCTypes.swift` | Add `discoveredDevice: DiscoveredDevice?` to `HelperStatus` |
+| `Shared/DiscoveredDeviceInfo.swift` | New — Codable DTO for XPC transport |
+| `Shared/XPCTypes.swift` | Add `discoveredDevice: DiscoveredDeviceInfo?` to `HelperStatus` |
 | `Shared/DeviceField.swift` | New — enum with cases, labels, icons |
-| `ZscalerSplitTunnelHelper/Discovery/DiscoveredDevice.swift` | Remove (moved to Shared) |
-| `ZscalerSplitTunnelHelper/HelperTool.swift` | Populate `discoveredDevice` in `getStatus()` |
+| `ZscalerSplitTunnelHelper/Discovery/DiscoveredDevice.swift` | Add `toInfo()` conversion to DTO |
+| `ZscalerSplitTunnelHelper/HelperTool.swift` | Populate `discoveredDevice` via `statusSnapshot()` |
+| `ZscalerSplitTunnelHelper/MonitorLoop.swift` | Add `statusSnapshot()`, serialize state mutations onto queue |
 | `ZscalerSplitTunnel/Views/MenuBarView.swift` | Add `DisclosureGroup` for device summary |
 | `ZscalerSplitTunnel/Views/SettingsView.swift` | Add "Network Device" tab |
 | `ZscalerSplitTunnel/Views/NetworkDeviceTab.swift` | New — full device detail + field toggles |

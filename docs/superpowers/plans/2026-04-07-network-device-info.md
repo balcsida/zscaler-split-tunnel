@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Create `DiscoveredDeviceInfo` Codable DTO in Shared
+## Task 1: Create `DiscoveredDeviceInfo` Codable DTO in Shared
 
 **Files:**
 - Create: `macOS/Shared/DiscoveredDeviceInfo.swift`
@@ -87,7 +87,7 @@ git commit -m "feat: add DiscoveredDeviceInfo Codable DTO in Shared"
 
 ---
 
-### Task 2: Add `discoveredDevice` to `HelperStatus` and populate in `HelperTool`
+## Task 2: Add `discoveredDevice` to `HelperStatus` and populate in `HelperTool`
 
 **Files:**
 - Modify: `macOS/Shared/XPCTypes.swift:11-31` (add field to HelperStatus)
@@ -148,8 +148,8 @@ func toInfo() -> DiscoveredDeviceInfo {
 In `macOS/ZscalerSplitTunnelHelper/HelperTool.swift`, in the `getStatus` method, add `discoveredDevice` to the `HelperStatus` initializer. Change the init call (line 84-103) to include:
 
 ```swift
-officeWifiGateway: monitorLoop.officeDetector.wifiGateway,
-discoveredDevice: monitorLoop.officeDetector.lastDiscoveredDevice?.toInfo()
+officeWifiGateway: snapshot.officeWifiGateway,
+discoveredDevice: snapshot.lastDiscoveredDevice?.toInfo()
 ```
 
 Replace the existing `officeWifiGateway` line (which is the last parameter) and add `discoveredDevice` after it.
@@ -169,7 +169,7 @@ git commit -m "feat: expose discovered device data through HelperStatus"
 
 ---
 
-### Task 3: Create `DeviceField` enum and preferences wrapper
+## Task 3: Create `DeviceField` enum and preferences wrapper
 
 **Files:**
 - Create: `macOS/Shared/DeviceField.swift`
@@ -302,7 +302,7 @@ git commit -m "feat: add DeviceField enum and preferences wrapper"
 
 ---
 
-### Task 4: Wire `DeviceFieldPreferences` into `AppState`
+## Task 4: Wire `DeviceFieldPreferences` into `AppState`
 
 **Files:**
 - Modify: `macOS/ZscalerSplitTunnel/ViewModels/AppState.swift:8` (add property)
@@ -325,7 +325,7 @@ git commit -m "feat: wire DeviceFieldPreferences into AppState"
 
 ---
 
-### Task 5: Add device detail `DisclosureGroup` to `MenuBarView`
+## Task 5: Add device detail `DisclosureGroup` to `MenuBarView`
 
 **Files:**
 - Modify: `macOS/ZscalerSplitTunnel/Views/MenuBarView.swift:68-82` (add disclosure group in status section)
@@ -368,7 +368,7 @@ git commit -m "feat: add device details disclosure group to menu bar"
 
 ---
 
-### Task 6: Create `NetworkDeviceTab` Settings view
+## Task 6: Create `NetworkDeviceTab` Settings view
 
 **Files:**
 - Create: `macOS/ZscalerSplitTunnel/Views/NetworkDeviceTab.swift`
@@ -593,7 +593,7 @@ git commit -m "feat: add NetworkDeviceTab with full device detail and field togg
 
 ---
 
-### Task 7: Add "Network Device" tab to SettingsView
+## Task 7: Add "Network Device" tab to SettingsView
 
 **Files:**
 - Modify: `macOS/ZscalerSplitTunnel/Views/SettingsView.swift:7-26` (add tab)
