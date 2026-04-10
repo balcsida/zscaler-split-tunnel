@@ -130,13 +130,11 @@ struct DiscoveredDevice: Identifiable {
         chassisIdSubtype = chassisIdSubtype ?? other.chassisIdSubtype
         portIdSubtype = portIdSubtype ?? other.portIdSubtype
 
-        // Merge arrays: take the richer set
-        if other.managementAddresses.count > managementAddresses.count {
-            managementAddresses = other.managementAddresses
-        }
-        if other.capabilities.count > capabilities.count {
-            capabilities = other.capabilities
-        }
+        // Merge arrays: union and deduplicate
+        let allAddresses = NSOrderedSet(array: managementAddresses + other.managementAddresses)
+        managementAddresses = allAddresses.array as! [String]
+        let allCapabilities = NSOrderedSet(array: capabilities + other.capabilities)
+        capabilities = allCapabilities.array as! [String]
         if other.organizationalTLVs.count > organizationalTLVs.count {
             organizationalTLVs = other.organizationalTLVs
         }
