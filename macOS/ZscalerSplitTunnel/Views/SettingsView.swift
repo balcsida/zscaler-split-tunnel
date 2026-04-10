@@ -25,7 +25,7 @@ struct SettingsView: View {
                 .environment(appState)
                 .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
         }
-        .frame(width: 600, height: 550)
+        .frame(minWidth: 600, minHeight: 400)
     }
 }
 
