@@ -3,7 +3,7 @@ import Foundation
 /// Codable DTO for discovered network device data, passed from helper to app via XPC.
 struct DiscoveredDeviceInfo: Codable, Sendable {
     // Meta
-    var protocolType: String // "CDP" or "LLDP"
+    var protocolType: String // "CDP", "LLDP", or a merged label like "CDP+LLDP"
     var sourceInterface: String
     var sourceMac: String
     var timestamp: Date
