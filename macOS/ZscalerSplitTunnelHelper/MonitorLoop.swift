@@ -32,7 +32,56 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var activeCapureInterfaces: [String] = []
     private(set) var allEthernetInterfaces: [String] = []
     private(set) var wifiInterface: String?
-    var officeSwitchName: String? { lastDiscoveredDevice?.systemName ?? lastDiscoveredDevice?.deviceId }
+    /// The name of the last device that matched office switch patterns (set by OfficeNetworkDetector).
+    private(set) var officeSwitchName: String?
+
+    /// A point-in-time snapshot of MonitorLoop state, safe to read from any thread.
+    struct StatusSnapshot {
+        let lastDiscoveredDevice: DiscoveredDevice?
+        let activeCaptureInterfaces: [String]
+        let allEthernetInterfaces: [String]
+        let wifiInterface: String?
+        let captureErrors: [String]
+        let customRouteCount: Int
+        let bypassRouteCount: Int
+        let lastRefresh: Date?
+        let officeMode: OfficeMode
+        let officeSwitchName: String?
+        let officeWifiGateway: String?
+        let isRunning: Bool
+        let interval: Int
+    }
+
+    /// Returns a consistent snapshot of all status properties, read under the monitor queue.
+    func statusSnapshot(completion: @escaping (StatusSnapshot) -> Void) {
+        queue.async { [weak self] in
+            guard let self else {
+                completion(StatusSnapshot(
+                    lastDiscoveredDevice: nil, activeCaptureInterfaces: [],
+                    allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
+                    customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
+                    officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
+                    isRunning: false, interval: 0
+                ))
+                return
+            }
+            completion(StatusSnapshot(
+                lastDiscoveredDevice: self.lastDiscoveredDevice,
+                activeCaptureInterfaces: self.activeCapureInterfaces,
+                allEthernetInterfaces: self.allEthernetInterfaces,
+                wifiInterface: self.wifiInterface,
+                captureErrors: self.captureErrors,
+                customRouteCount: self.customRouteCount,
+                bypassRouteCount: self.bypassRouteCount,
+                lastRefresh: self.lastRefresh,
+                officeMode: self.officeMode,
+                officeSwitchName: self.officeSwitchName,
+                officeWifiGateway: self.officeDetector.wifiGateway,
+                isRunning: self.isRunning,
+                interval: self.interval
+            ))
+        }
+    }
 
     func start(interval: Int) {
         guard !isRunning else {
@@ -64,12 +113,16 @@ final class MonitorLoop: @unchecked Sendable {
     }
 
     func stop() {
-        timer?.cancel()
-        timer = nil
         isRunning = false
-        stopCaptures()
-        officeDetector.stop()
-        lastDiscoveredDevice = nil
+        queue.async { [weak self] in
+            guard let self else { return }
+            self.timer?.cancel()
+            self.timer = nil
+            self.stopCaptures()
+            self.officeDetector.stop()
+            self.lastDiscoveredDevice = nil
+            self.officeSwitchName = nil
+        }
         logger.info("Stopped route monitoring")
     }
 
@@ -83,6 +136,8 @@ final class MonitorLoop: @unchecked Sendable {
     // MARK: - Private
 
     private func runCycle() {
+        guard isRunning else { return }
+
         // Evaluate office mode
         officeMode = officeDetector.evaluate()
 
@@ -146,7 +201,15 @@ final class MonitorLoop: @unchecked Sendable {
         stopCaptures()
         officeDetector.stop()
         officeDetector.start()
-        lastDiscoveredDevice = nil
+
+        // Only clear cached device if its source interface is no longer present
+        if let deviceIface = lastDiscoveredDevice?.sourceInterface,
+           !PacketCapture.listEthernetInterfaces().contains(deviceIface) {
+            logger.info("Clearing cached device (interface \(deviceIface) no longer present)")
+            lastDiscoveredDevice = nil
+            officeSwitchName = nil
+        }
+
         startCaptures()
         officeMode = officeDetector.evaluate()
 
@@ -176,11 +239,16 @@ final class MonitorLoop: @unchecked Sendable {
         for iface in interfaces {
             let capture = PacketCapture(interfaceName: iface)
             capture.onDeviceDiscovered = { [weak self] device in
-                self?.handleDiscovery(device)
+                self?.queue.async { [weak self] in
+                    self?.handleDiscovery(device)
+                }
             }
             capture.onError = { [weak self] error in
-                self?.logger.warning("Capture error on \(iface): \(error)")
-                self?.captureErrors.append("\(iface): \(error)")
+                self?.queue.async { [weak self] in
+                    guard let self else { return }
+                    self.logger.warning("Capture error on \(iface): \(error)")
+                    self.captureErrors.append("\(iface): \(error)")
+                }
             }
             capture.start()
             captures.append(capture)
@@ -211,7 +279,12 @@ final class MonitorLoop: @unchecked Sendable {
             lastDiscoveredDevice = device
         }
 
+        // Update office switch name only if the device matched office patterns
+        let previousDiscoveryTime = officeDetector.lastDiscoveryTime
         officeDetector.handleDiscovery(device)
+        if officeDetector.lastDiscoveryTime != previousDiscoveryTime {
+            officeSwitchName = device.systemName ?? device.deviceId
+        }
     }
 
     // MARK: - Routes
