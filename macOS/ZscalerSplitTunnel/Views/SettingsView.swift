@@ -26,6 +26,7 @@ struct SettingsView: View {
                 .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
         }
         .frame(minWidth: 600, minHeight: 400)
+        .symbolRenderingMode(.monochrome)
     }
 }
 
