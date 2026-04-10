@@ -149,6 +149,11 @@ final class AppState {
             splitTunnelState = status.splitTunnelState
             isHelperInstalled = true
             errorMessage = nil
+
+            // Auto-start monitoring if helper is idle
+            if !status.isMonitoring {
+                try await helperConnection.startMonitoring(interval: AppConstants.defaultMonitorInterval)
+            }
         } catch {
             helperStatus = nil
             splitTunnelState = .unknown
