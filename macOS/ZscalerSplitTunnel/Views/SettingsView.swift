@@ -7,8 +7,10 @@ import AppKit
 /// re-rasterize or stretch it on window state changes.
 private func fixedTabIcon(_ systemName: String, canvasSize: CGFloat = 24) -> Image {
     let config = NSImage.SymbolConfiguration(pointSize: canvasSize * 0.75, weight: .regular)
-    let symbol = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)!
-        .withSymbolConfiguration(config)!
+    guard let base = NSImage(systemSymbolName: systemName, accessibilityDescription: nil),
+          let symbol = base.withSymbolConfiguration(config) else {
+        return Image(systemName: systemName)
+    }
 
     let canvas = NSSize(width: canvasSize, height: canvasSize)
     let result = NSImage(size: canvas, flipped: false) { rect in
