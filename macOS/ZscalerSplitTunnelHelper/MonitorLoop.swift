@@ -41,17 +41,16 @@ final class MonitorLoop: @unchecked Sendable {
         }
         self.interval = interval
         isRunning = true
-        lastNetworkSignature = NetworkDetector.getNetworkSignature()
         logger.info("Starting route monitoring (interval: \(interval)s)")
 
-        // Load office mode config and start CDP/LLDP captures
-        officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
-        officeDetector.start()
-        startCaptures()
-
-        // Run initial cycle on background queue
+        // Run all state-mutating work on the monitor queue to avoid data races
         queue.async { [weak self] in
-            self?.runCycle()
+            guard let self else { return }
+            self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
+            self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
+            self.officeDetector.start()
+            self.startCaptures()
+            self.runCycle()
         }
 
         // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
@@ -96,6 +95,14 @@ final class MonitorLoop: @unchecked Sendable {
             return
         }
         lastNetworkSignature = currentSignature
+
+        // Check for new/removed Ethernet interfaces (e.g. dock connected/disconnected)
+        let currentInterfaces = Set(PacketCapture.listEthernetInterfaces())
+        if currentInterfaces != Set(allEthernetInterfaces) {
+            logger.info("Ethernet interfaces changed (\(self.allEthernetInterfaces) -> \(Array(currentInterfaces))), restarting captures")
+            stopCaptures()
+            startCaptures()
+        }
 
         // Check for config changes
         if configHasChanged() {
