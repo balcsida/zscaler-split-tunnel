@@ -16,6 +16,7 @@ final class AppState {
     let configService = ConfigService()
 
     private var pollingTask: Task<Void, Never>?
+    private var pendingMonitorStart = false
 
     init() {
         // Reflect persisted SMAppService registration state immediately so the UI is correct before
@@ -150,9 +151,15 @@ final class AppState {
             isHelperInstalled = true
             errorMessage = nil
 
-            // Auto-start monitoring if helper is idle
-            if !status.isMonitoring {
-                try await helperConnection.startMonitoring(interval: AppConstants.defaultMonitorInterval)
+            // Auto-start monitoring if helper is idle (guard against repeated calls)
+            if !status.isMonitoring && !pendingMonitorStart {
+                pendingMonitorStart = true
+                do {
+                    try await helperConnection.startMonitoring(interval: AppConstants.defaultMonitorInterval)
+                } catch {
+                    errorMessage = "Auto-start monitoring failed: \(error.localizedDescription)"
+                }
+                pendingMonitorStart = false
             }
         } catch {
             helperStatus = nil
