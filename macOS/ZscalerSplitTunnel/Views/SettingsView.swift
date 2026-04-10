@@ -1,4 +1,16 @@
 import SwiftUI
+import AppKit
+
+/// Renders an SF Symbol to a fixed-size NSImage to prevent macOS from
+/// re-rasterizing it on window active/inactive transitions (Apple bug).
+private func fixedTabIcon(_ systemName: String, size: CGFloat = 20) -> Image {
+    let config = NSImage.SymbolConfiguration(pointSize: size, weight: .regular)
+    let nsImage = NSImage(systemSymbolName: systemName, accessibilityDescription: nil)!
+        .withSymbolConfiguration(config)!
+    nsImage.isTemplate = true
+    nsImage.size = NSSize(width: size, height: size)
+    return Image(nsImage: nsImage)
+}
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
@@ -7,26 +19,25 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsTab()
                 .environment(appState)
-                .tabItem { Label("General", systemImage: "gear") }
+                .tabItem { Label { Text("General") } icon: { fixedTabIcon("gear") } }
 
             ConfigEditorView(configType: .routes)
                 .environment(appState)
-                .tabItem { Label("Custom Routes", systemImage: "arrow.triangle.branch") }
+                .tabItem { Label { Text("Custom Routes") } icon: { fixedTabIcon("arrow.triangle.branch") } }
 
             ConfigEditorView(configType: .bypass)
                 .environment(appState)
-                .tabItem { Label("Bypass Routes", systemImage: "arrow.triangle.swap") }
+                .tabItem { Label { Text("Bypass Routes") } icon: { fixedTabIcon("arrow.triangle.swap") } }
 
             NetworkDeviceTab()
                 .environment(appState)
-                .tabItem { Label("Network Device", systemImage: "wifi.router") }
+                .tabItem { Label { Text("Network Device") } icon: { fixedTabIcon("wifi.router") } }
 
             AdvancedSettingsTab()
                 .environment(appState)
-                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label { Text("Advanced") } icon: { fixedTabIcon("wrench.and.screwdriver") } }
         }
         .frame(minWidth: 600, minHeight: 400)
-        .symbolRenderingMode(.monochrome)
     }
 }
 
