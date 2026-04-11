@@ -11,11 +11,11 @@ actor HelperConnection {
         let conn = NSXPCConnection(machServiceName: AppConstants.machServiceName, options: .privileged)
         conn.remoteObjectInterface = NSXPCInterface(with: HelperToolProtocol.self)
 
-        conn.interruptionHandler = { [weak self] in
-            Task { await self?.resetConnection() }
+        conn.interruptionHandler = {
+            Task { [weak self] in await self?.resetConnection() }
         }
-        conn.invalidationHandler = { [weak self] in
-            Task { await self?.resetConnection() }
+        conn.invalidationHandler = {
+            Task { [weak self] in await self?.resetConnection() }
         }
 
         conn.resume()
