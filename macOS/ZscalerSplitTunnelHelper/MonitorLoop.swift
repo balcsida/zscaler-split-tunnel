@@ -226,14 +226,13 @@ final class MonitorLoop: @unchecked Sendable {
         wifiInterface = wifiIface
         let allInterfaces = PacketCapture.listEthernetInterfaces()
         allEthernetInterfaces = allInterfaces
+        captureErrors = []
         let interfaces = allInterfaces.filter { $0 != wifiIface }
 
         guard !interfaces.isEmpty else {
             logger.info("No Ethernet interfaces found for CDP/LLDP capture (all en*: \(allInterfaces), wifi: \(wifiIface ?? "none"))")
             return
         }
-
-        captureErrors = []
         var started: [String] = []
 
         for iface in interfaces {
