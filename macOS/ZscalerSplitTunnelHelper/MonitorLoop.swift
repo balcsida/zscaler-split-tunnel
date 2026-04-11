@@ -29,7 +29,7 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var lastDiscoveredDevice: DiscoveredDevice?
     private var captures: [PacketCapture] = []
     private(set) var captureErrors: [String] = []
-    private(set) var activeCapureInterfaces: [String] = []
+    private(set) var activeCaptureInterfaces: [String] = []
     private(set) var allEthernetInterfaces: [String] = []
     private(set) var wifiInterface: String?
     /// The name of the last device that matched office switch patterns (set by OfficeNetworkDetector).
@@ -67,7 +67,7 @@ final class MonitorLoop: @unchecked Sendable {
             }
             completion(StatusSnapshot(
                 lastDiscoveredDevice: self.lastDiscoveredDevice,
-                activeCaptureInterfaces: self.activeCapureInterfaces,
+                activeCaptureInterfaces: self.activeCaptureInterfaces,
                 allEthernetInterfaces: self.allEthernetInterfaces,
                 wifiInterface: self.wifiInterface,
                 captureErrors: self.captureErrors,
@@ -255,7 +255,7 @@ final class MonitorLoop: @unchecked Sendable {
             logger.info("Started CDP/LLDP capture on \(iface)")
         }
 
-        activeCapureInterfaces = started
+        activeCaptureInterfaces = started
     }
 
     private func stopCaptures() {
@@ -263,7 +263,7 @@ final class MonitorLoop: @unchecked Sendable {
             capture.stop()
         }
         captures.removeAll()
-        activeCapureInterfaces = []
+        activeCaptureInterfaces = []
     }
 
     private func handleDiscovery(_ device: DiscoveredDevice) {
