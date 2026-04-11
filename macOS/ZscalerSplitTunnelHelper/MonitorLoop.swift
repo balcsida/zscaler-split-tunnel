@@ -113,9 +113,9 @@ final class MonitorLoop: @unchecked Sendable {
     }
 
     func stop() {
-        isRunning = false
-        queue.async { [weak self] in
+        queue.sync { [weak self] in
             guard let self else { return }
+            self.isRunning = false
             self.timer?.cancel()
             self.timer = nil
             self.stopCaptures()
