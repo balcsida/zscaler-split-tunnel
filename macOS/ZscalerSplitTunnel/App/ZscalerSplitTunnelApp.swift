@@ -21,6 +21,7 @@ struct ZscalerSplitTunnelApp: App {
             SettingsView()
                 .environment(appState)
         }
+        .windowResizability(.contentSize)
     }
 
     var menuBarIcon: String {

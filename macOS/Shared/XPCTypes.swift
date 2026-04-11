@@ -22,6 +22,15 @@ struct HelperStatus: Codable, Sendable {
     var officeMode: OfficeMode
     var officeSwitchName: String?
     var officeWifiGateway: String?
+    var discoveredDevice: DiscoveredDeviceInfo?
+    var captureStatus: CaptureStatus?
+
+    struct CaptureStatus: Codable, Sendable {
+        var activeInterfaces: [String]
+        var allEthernetInterfaces: [String]
+        var wifiInterface: String?
+        var errors: [String]
+    }
 
     struct BroadRouteStatus: Codable, Sendable {
         var ipv4Present: Int

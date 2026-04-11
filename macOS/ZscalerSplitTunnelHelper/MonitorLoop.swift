@@ -26,7 +26,62 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var bypassRouteCount: Int = 0
     private(set) var lastRefresh: Date?
     private(set) var officeMode: OfficeMode = .disabled
-    var officeSwitchName: String? { officeDetector.lastDiscoveredDevice?.systemName ?? officeDetector.lastDiscoveredDevice?.deviceId }
+    private(set) var lastDiscoveredDevice: DiscoveredDevice?
+    private var captures: [PacketCapture] = []
+    private(set) var captureErrors: [String] = []
+    private(set) var activeCaptureInterfaces: [String] = []
+    private(set) var allEthernetInterfaces: [String] = []
+    private(set) var wifiInterface: String?
+    /// The name of the last device that matched office switch patterns (set by OfficeNetworkDetector).
+    private(set) var officeSwitchName: String?
+
+    /// A point-in-time snapshot of MonitorLoop state, safe to read from any thread.
+    struct StatusSnapshot {
+        let lastDiscoveredDevice: DiscoveredDevice?
+        let activeCaptureInterfaces: [String]
+        let allEthernetInterfaces: [String]
+        let wifiInterface: String?
+        let captureErrors: [String]
+        let customRouteCount: Int
+        let bypassRouteCount: Int
+        let lastRefresh: Date?
+        let officeMode: OfficeMode
+        let officeSwitchName: String?
+        let officeWifiGateway: String?
+        let isRunning: Bool
+        let interval: Int
+    }
+
+    /// Returns a consistent snapshot of all status properties, read under the monitor queue.
+    func statusSnapshot(completion: @escaping (StatusSnapshot) -> Void) {
+        queue.async { [weak self] in
+            guard let self else {
+                completion(StatusSnapshot(
+                    lastDiscoveredDevice: nil, activeCaptureInterfaces: [],
+                    allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
+                    customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
+                    officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
+                    isRunning: false, interval: 0
+                ))
+                return
+            }
+            completion(StatusSnapshot(
+                lastDiscoveredDevice: self.lastDiscoveredDevice,
+                activeCaptureInterfaces: self.activeCaptureInterfaces,
+                allEthernetInterfaces: self.allEthernetInterfaces,
+                wifiInterface: self.wifiInterface,
+                captureErrors: self.captureErrors,
+                customRouteCount: self.customRouteCount,
+                bypassRouteCount: self.bypassRouteCount,
+                lastRefresh: self.lastRefresh,
+                officeMode: self.officeMode,
+                officeSwitchName: self.officeSwitchName,
+                officeWifiGateway: self.officeDetector.wifiGateway,
+                isRunning: self.isRunning,
+                interval: self.interval
+            ))
+        }
+    }
 
     func start(interval: Int) {
         guard !isRunning else {
@@ -35,16 +90,16 @@ final class MonitorLoop: @unchecked Sendable {
         }
         self.interval = interval
         isRunning = true
-        lastNetworkSignature = NetworkDetector.getNetworkSignature()
         logger.info("Starting route monitoring (interval: \(interval)s)")
 
-        // Load and start office mode detection
-        officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
-        officeDetector.start()
-
-        // Run initial cycle on background queue
+        // Run all state-mutating work on the monitor queue to avoid data races
         queue.async { [weak self] in
-            self?.runCycle()
+            guard let self else { return }
+            self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
+            self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
+            self.officeDetector.start()
+            self.startCaptures()
+            self.runCycle()
         }
 
         // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
@@ -58,10 +113,16 @@ final class MonitorLoop: @unchecked Sendable {
     }
 
     func stop() {
-        timer?.cancel()
-        timer = nil
-        isRunning = false
-        officeDetector.stop()
+        queue.sync { [weak self] in
+            guard let self else { return }
+            self.isRunning = false
+            self.timer?.cancel()
+            self.timer = nil
+            self.stopCaptures()
+            self.officeDetector.stop()
+            self.lastDiscoveredDevice = nil
+            self.officeSwitchName = nil
+        }
         logger.info("Stopped route monitoring")
     }
 
@@ -75,6 +136,8 @@ final class MonitorLoop: @unchecked Sendable {
     // MARK: - Private
 
     private func runCycle() {
+        guard isRunning else { return }
+
         // Evaluate office mode
         officeMode = officeDetector.evaluate()
 
@@ -87,6 +150,22 @@ final class MonitorLoop: @unchecked Sendable {
             return
         }
         lastNetworkSignature = currentSignature
+
+        // Check for new/removed Ethernet interfaces (e.g. dock connected/disconnected)
+        let currentInterfaces = Set(PacketCapture.listEthernetInterfaces())
+        if currentInterfaces != Set(allEthernetInterfaces) {
+            let removed = Set(allEthernetInterfaces).subtracting(currentInterfaces)
+            logger.info("Ethernet interfaces changed (\(self.allEthernetInterfaces) -> \(Array(currentInterfaces))), restarting captures")
+
+            // Clear cached device if its source interface was disconnected
+            if let deviceIface = lastDiscoveredDevice?.sourceInterface, removed.contains(deviceIface) {
+                logger.info("Clearing cached device (interface \(deviceIface) disconnected)")
+                lastDiscoveredDevice = nil
+            }
+
+            stopCaptures()
+            startCaptures()
+        }
 
         // Check for config changes
         if configHasChanged() {
@@ -118,14 +197,96 @@ final class MonitorLoop: @unchecked Sendable {
         lastConfigSignature = nil
         lastBypassGateway = nil
 
-        // Restart office detection on new network
+        // Restart captures and office detection on new network
+        stopCaptures()
         officeDetector.stop()
         officeDetector.start()
+
+        // Only clear cached device if its source interface is no longer present
+        if let deviceIface = lastDiscoveredDevice?.sourceInterface,
+           !PacketCapture.listEthernetInterfaces().contains(deviceIface) {
+            logger.info("Clearing cached device (interface \(deviceIface) no longer present)")
+            lastDiscoveredDevice = nil
+            officeSwitchName = nil
+        }
+
+        startCaptures()
         officeMode = officeDetector.evaluate()
 
         reloadAndApplyRoutes()
         lastRefresh = Date()
     }
+
+    // MARK: - CDP/LLDP Capture
+
+    private func startCaptures() {
+        stopCaptures()
+
+        let wifiIface = WiFiDetector.wifiInterfaceName()
+        wifiInterface = wifiIface
+        let allInterfaces = PacketCapture.listEthernetInterfaces()
+        allEthernetInterfaces = allInterfaces
+        captureErrors = []
+        let interfaces = allInterfaces.filter { $0 != wifiIface }
+
+        guard !interfaces.isEmpty else {
+            logger.info("No Ethernet interfaces found for CDP/LLDP capture (all en*: \(allInterfaces), wifi: \(wifiIface ?? "none"))")
+            return
+        }
+        var started: [String] = []
+
+        for iface in interfaces {
+            let capture = PacketCapture(interfaceName: iface)
+            capture.onDeviceDiscovered = { [weak self] device in
+                self?.queue.async { [weak self] in
+                    self?.handleDiscovery(device)
+                }
+            }
+            capture.onError = { [weak self] error in
+                self?.queue.async { [weak self] in
+                    guard let self else { return }
+                    self.logger.warning("Capture error on \(iface): \(error)")
+                    self.captureErrors.append("\(iface): \(error)")
+                }
+            }
+            capture.start()
+            captures.append(capture)
+            started.append(iface)
+            logger.info("Started CDP/LLDP capture on \(iface)")
+        }
+
+        activeCaptureInterfaces = started
+    }
+
+    private func stopCaptures() {
+        for capture in captures {
+            capture.stop()
+        }
+        captures.removeAll()
+        activeCaptureInterfaces = []
+    }
+
+    private func handleDiscovery(_ device: DiscoveredDevice) {
+        let name = device.displayTitle
+        logger.info("Discovered device: \(name) via \(device.protocolType.rawValue) on \(device.sourceInterface)")
+
+        // Merge into existing data if same interface, otherwise replace
+        if var existing = lastDiscoveredDevice, existing.sourceInterface == device.sourceInterface {
+            existing.merge(from: device)
+            lastDiscoveredDevice = existing
+        } else {
+            lastDiscoveredDevice = device
+        }
+
+        // Update office switch name only if the device matched office patterns
+        let previousDiscoveryTime = officeDetector.lastDiscoveryTime
+        officeDetector.handleDiscovery(device)
+        if officeDetector.lastDiscoveryTime != previousDiscoveryTime {
+            officeSwitchName = device.systemName ?? device.deviceId
+        }
+    }
+
+    // MARK: - Routes
 
     private func reloadAndApplyRoutes() {
         _ = BroadRouteManager.removeBroadRoutes()

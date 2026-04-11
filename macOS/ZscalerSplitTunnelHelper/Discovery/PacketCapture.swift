@@ -65,7 +65,7 @@ final class PacketCapture: @unchecked Sendable {
         var errbuf = [CChar](repeating: 0, count: Int(PCAP_ERRBUF_SIZE))
 
         guard let h = pcap_open_live(interfaceName, 65535, 1, 1000, &errbuf) else {
-            let errMsg = String(cString: errbuf)
+            let errMsg = String(decoding: errbuf.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
             reportError("Failed to open \(interfaceName): \(errMsg)")
             return
         }

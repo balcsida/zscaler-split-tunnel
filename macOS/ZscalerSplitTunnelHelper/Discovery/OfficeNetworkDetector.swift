@@ -14,10 +14,8 @@ final class OfficeNetworkDetector: @unchecked Sendable {
     private(set) var mode: OfficeMode = .disabled
     private(set) var wifiGateway: String?
     private(set) var wifiInterface: String?
-    private(set) var lastDiscoveredDevice: DiscoveredDevice?
     private(set) var lastDiscoveryTime: Date?
 
-    private var captures: [PacketCapture] = []
     private var config = Config()
     private let lock = NSLock()
 
@@ -29,7 +27,6 @@ final class OfficeNetworkDetector: @unchecked Sendable {
         lock.unlock()
 
         if !config.enabled {
-            stop()
             mode = .disabled
         }
     }
@@ -56,48 +53,38 @@ final class OfficeNetworkDetector: @unchecked Sendable {
             return
         }
 
-        stopCaptures()
-
-        let wifiIface = WiFiDetector.wifiInterfaceName()
-        wifiInterface = wifiIface
-
-        let interfaces = PacketCapture.listEthernetInterfaces()
-            .filter { $0 != wifiIface } // Don't capture on WiFi
-
-        guard !interfaces.isEmpty else {
-            Self.logger.info("No Ethernet interfaces found for CDP/LLDP capture")
-            mode = .notOffice
-            return
-        }
-
+        wifiInterface = WiFiDetector.wifiInterfaceName()
         mode = .detecting
-
-        for iface in interfaces {
-            let capture = PacketCapture(interfaceName: iface)
-            capture.onDeviceDiscovered = { [weak self] device in
-                self?.handleDiscovery(device)
-            }
-            capture.onError = { error in
-                Self.logger.warning("Capture error: \(error)")
-            }
-            capture.start()
-            captures.append(capture)
-            Self.logger.info("Started CDP/LLDP capture on \(iface)")
-        }
     }
 
     func stop() {
-        stopCaptures()
         wifiGateway = nil
-        lastDiscoveredDevice = nil
         lastDiscoveryTime = nil
     }
 
-    private func stopCaptures() {
-        for capture in captures {
-            capture.stop()
+    /// Called by MonitorLoop when a CDP/LLDP device is discovered.
+    func handleDiscovery(_ device: DiscoveredDevice) {
+        lock.lock()
+        let patterns = config.switchNamePatterns
+        let enabled = config.enabled
+        lock.unlock()
+
+        guard enabled else { return }
+
+        let name = device.systemName ?? device.deviceId ?? ""
+
+        if !patterns.isEmpty {
+            let matches = patterns.contains { pattern in
+                matchesGlob(name: name.lowercased(), pattern: pattern.lowercased())
+            }
+            guard matches else {
+                Self.logger.debug("Discovered device '\(name)' does not match switch patterns, ignoring for office mode")
+                return
+            }
         }
-        captures.removeAll()
+
+        Self.logger.info("Office switch detected: \(name) via \(device.protocolType.rawValue) on \(device.sourceInterface)")
+        lastDiscoveryTime = Date()
     }
 
     // MARK: - Evaluation
@@ -133,35 +120,13 @@ final class OfficeNetworkDetector: @unchecked Sendable {
             mode = .notOffice
         } else {
             // Still detecting, no discovery yet
-            mode = captures.isEmpty ? .notOffice : .detecting
+            mode = .detecting
         }
 
         return mode
     }
 
     // MARK: - Private
-
-    private func handleDiscovery(_ device: DiscoveredDevice) {
-        lock.lock()
-        let patterns = config.switchNamePatterns
-        lock.unlock()
-
-        let name = device.systemName ?? device.deviceId ?? ""
-
-        if !patterns.isEmpty {
-            let matches = patterns.contains { pattern in
-                matchesGlob(name: name.lowercased(), pattern: pattern.lowercased())
-            }
-            guard matches else {
-                Self.logger.debug("Discovered device '\(name)' does not match switch patterns, ignoring")
-                return
-            }
-        }
-
-        Self.logger.info("Office switch detected: \(name) via \(device.protocolType.rawValue) on \(device.sourceInterface)")
-        lastDiscoveredDevice = device
-        lastDiscoveryTime = Date()
-    }
 
     private func isInOffice(gracePeriod: Int) -> Bool {
         guard let lastTime = lastDiscoveryTime else { return false }

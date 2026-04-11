@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,6 +79,17 @@ struct MenuBarView: View {
                     if let wifiGW = status.officeWifiGateway {
                         StatusRow(icon: "wifi", label: "WiFi GW",
                                   value: wifiGW)
+                    }
+                }
+
+                if let device = status.discoveredDevice {
+                    ForEach(DeviceField.allCases.filter {
+                        appState.deviceFieldPreferences.isEnabled($0)
+                    }, id: \.self) { field in
+                        if let fieldValue = field.value(from: device) {
+                            StatusRow(icon: field.icon, label: field.label,
+                                      value: fieldValue)
+                        }
                     }
                 }
 
@@ -192,7 +204,10 @@ struct MenuBarView: View {
 
     private var footerSection: some View {
         HStack {
-            SettingsLink {
+            Button {
+                openSettings()
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
                 Label("Settings", systemImage: "gear")
                     .font(.callout)
             }

@@ -1,4 +1,28 @@
 import SwiftUI
+import AppKit
+
+/// Renders an SF Symbol to a fixed-size NSImage to prevent macOS from
+/// re-rasterizing it on window active/inactive transitions (Apple bug).
+/// Rasterizes an SF Symbol into a fixed-size bitmap so macOS cannot
+/// re-rasterize or stretch it on window state changes.
+private func fixedTabIcon(_ systemName: String, canvasSize: CGFloat = 24) -> Image {
+    let config = NSImage.SymbolConfiguration(pointSize: canvasSize * 0.75, weight: .regular)
+    guard let base = NSImage(systemSymbolName: systemName, accessibilityDescription: nil),
+          let symbol = base.withSymbolConfiguration(config) else {
+        return Image(systemName: systemName)
+    }
+
+    let canvas = NSSize(width: canvasSize, height: canvasSize)
+    let result = NSImage(size: canvas, flipped: false) { rect in
+        let symbolSize = symbol.size
+        let x = (rect.width - symbolSize.width) / 2
+        let y = (rect.height - symbolSize.height) / 2
+        symbol.draw(in: NSRect(x: x, y: y, width: symbolSize.width, height: symbolSize.height))
+        return true
+    }
+    result.isTemplate = true
+    return Image(nsImage: result)
+}
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
@@ -7,21 +31,25 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsTab()
                 .environment(appState)
-                .tabItem { Label("General", systemImage: "gear") }
+                .tabItem { Label { Text("General") } icon: { fixedTabIcon("gear") } }
 
             ConfigEditorView(configType: .routes)
                 .environment(appState)
-                .tabItem { Label("Custom Routes", systemImage: "arrow.triangle.branch") }
+                .tabItem { Label { Text("Custom Routes") } icon: { fixedTabIcon("arrow.triangle.branch") } }
 
             ConfigEditorView(configType: .bypass)
                 .environment(appState)
-                .tabItem { Label("Bypass Routes", systemImage: "arrow.triangle.swap") }
+                .tabItem { Label { Text("Bypass Routes") } icon: { fixedTabIcon("arrow.triangle.swap") } }
+
+            NetworkDeviceTab()
+                .environment(appState)
+                .tabItem { Label { Text("Network Device") } icon: { fixedTabIcon("wifi.router") } }
 
             AdvancedSettingsTab()
                 .environment(appState)
-                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label { Text("Advanced") } icon: { fixedTabIcon("wrench.and.screwdriver") } }
         }
-        .frame(width: 600, height: 400)
+        .frame(minWidth: 600, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
     }
 }
 
@@ -45,6 +73,7 @@ struct GeneralSettingsTab: View {
                 Button("Reinstall Helper") {
                     appState.installHelper()
                 }
+                .disabled(appState.isLoading)
             }
 
             Section("Monitoring") {

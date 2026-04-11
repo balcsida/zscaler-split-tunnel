@@ -80,34 +80,45 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
         let broadRoutes = BroadRouteManager.countPresentRoutes()
         let zscalerRunning = ZscalerServiceManager.isRunning()
         let zscalerInterface = RouteEngine.detectZscalerInterface()
+        let networkSignature = NetworkDetector.getNetworkSignature()
 
-        let status = HelperStatus(
-            isMonitoring: monitorLoop.isRunning,
-            monitorInterval: monitorLoop.interval,
-            zscalerRunning: zscalerRunning,
-            zscalerInterface: zscalerInterface,
-            broadRoutesPresent: HelperStatus.BroadRouteStatus(
-                ipv4Present: broadRoutes.ipv4,
-                ipv4Total: AppConstants.ipv4BroadRoutes.count,
-                ipv6Present: broadRoutes.ipv6,
-                ipv6Total: AppConstants.ipv6BroadRoutes.count
-            ),
-            customRouteCount: monitorLoop.customRouteCount,
-            bypassRouteCount: monitorLoop.bypassRouteCount,
-            lastRefresh: monitorLoop.lastRefresh,
-            networkSignature: NetworkDetector.getNetworkSignature(),
-            version: "1.0",
-            officeMode: monitorLoop.officeMode,
-            officeSwitchName: monitorLoop.officeSwitchName,
-            officeWifiGateway: monitorLoop.officeDetector.wifiGateway
-        )
+        // Read all MonitorLoop state from a single synchronized snapshot
+        monitorLoop.statusSnapshot { [weak self] snapshot in
+            let status = HelperStatus(
+                isMonitoring: snapshot.isRunning,
+                monitorInterval: snapshot.interval,
+                zscalerRunning: zscalerRunning,
+                zscalerInterface: zscalerInterface,
+                broadRoutesPresent: HelperStatus.BroadRouteStatus(
+                    ipv4Present: broadRoutes.ipv4,
+                    ipv4Total: AppConstants.ipv4BroadRoutes.count,
+                    ipv6Present: broadRoutes.ipv6,
+                    ipv6Total: AppConstants.ipv6BroadRoutes.count
+                ),
+                customRouteCount: snapshot.customRouteCount,
+                bypassRouteCount: snapshot.bypassRouteCount,
+                lastRefresh: snapshot.lastRefresh,
+                networkSignature: networkSignature,
+                version: BuildInfo.gitCommitSHA,
+                officeMode: snapshot.officeMode,
+                officeSwitchName: snapshot.officeSwitchName,
+                officeWifiGateway: snapshot.officeWifiGateway,
+                discoveredDevice: snapshot.lastDiscoveredDevice?.toInfo(),
+                captureStatus: HelperStatus.CaptureStatus(
+                    activeInterfaces: snapshot.activeCaptureInterfaces,
+                    allEthernetInterfaces: snapshot.allEthernetInterfaces,
+                    wifiInterface: snapshot.wifiInterface,
+                    errors: snapshot.captureErrors
+                )
+            )
 
-        do {
-            let data = try JSONEncoder().encode(status)
-            reply(data)
-        } catch {
-            logger.error("Failed to encode status: \(error.localizedDescription)")
-            reply(Data())
+            do {
+                let data = try JSONEncoder().encode(status)
+                reply(data)
+            } catch {
+                self?.logger.error("Failed to encode status: \(error.localizedDescription)")
+                reply(Data())
+            }
         }
     }
 
@@ -123,6 +134,6 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func getVersion(reply: @escaping (String) -> Void) {
-        reply("1.0")
+        reply(BuildInfo.gitCommitSHA)
     }
 }
