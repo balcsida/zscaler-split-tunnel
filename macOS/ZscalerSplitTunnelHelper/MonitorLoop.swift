@@ -35,6 +35,10 @@ final class MonitorLoop: @unchecked Sendable {
     /// The name of the last device that matched office switch patterns (set by OfficeNetworkDetector).
     private(set) var officeSwitchName: String?
 
+    // Lock-protected snapshot so statusSnapshot() never has to wait for the monitor queue.
+    private let snapshotLock = NSLock()
+    private var _cachedSnapshot: StatusSnapshot?
+
     /// A point-in-time snapshot of MonitorLoop state, safe to read from any thread.
     struct StatusSnapshot {
         let lastDiscoveredDevice: DiscoveredDevice?
@@ -52,35 +56,46 @@ final class MonitorLoop: @unchecked Sendable {
         let interval: Int
     }
 
-    /// Returns a consistent snapshot of all status properties, read under the monitor queue.
+    /// Returns a consistent snapshot of all status properties.
+    ///
+    /// Reads from a lock-protected cache that is refreshed at the end of every
+    /// monitor-queue cycle, so this call never blocks waiting for the monitor
+    /// queue to become free (which would cause a `getStatus` XPC timeout while
+    /// a long-running `handleNetworkChange` is in progress).
     func statusSnapshot(completion: @escaping (StatusSnapshot) -> Void) {
-        queue.async { [weak self] in
-            guard let self else {
-                completion(StatusSnapshot(
-                    lastDiscoveredDevice: nil, activeCaptureInterfaces: [],
-                    allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
-                    customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
-                    officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
-                    isRunning: false, interval: 0
-                ))
-                return
-            }
-            completion(StatusSnapshot(
-                lastDiscoveredDevice: self.lastDiscoveredDevice,
-                activeCaptureInterfaces: self.activeCaptureInterfaces,
-                allEthernetInterfaces: self.allEthernetInterfaces,
-                wifiInterface: self.wifiInterface,
-                captureErrors: self.captureErrors,
-                customRouteCount: self.customRouteCount,
-                bypassRouteCount: self.bypassRouteCount,
-                lastRefresh: self.lastRefresh,
-                officeMode: self.officeMode,
-                officeSwitchName: self.officeSwitchName,
-                officeWifiGateway: self.officeDetector.wifiGateway,
-                isRunning: self.isRunning,
-                interval: self.interval
-            ))
-        }
+        snapshotLock.lock()
+        let snapshot = _cachedSnapshot
+        snapshotLock.unlock()
+
+        completion(snapshot ?? StatusSnapshot(
+            lastDiscoveredDevice: nil, activeCaptureInterfaces: [],
+            allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
+            customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
+            officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
+            isRunning: false, interval: 0
+        ))
+    }
+
+    /// Must be called on `queue`. Captures current state into the lock-protected cache.
+    private func updateSnapshot() {
+        let snapshot = StatusSnapshot(
+            lastDiscoveredDevice: lastDiscoveredDevice,
+            activeCaptureInterfaces: activeCaptureInterfaces,
+            allEthernetInterfaces: allEthernetInterfaces,
+            wifiInterface: wifiInterface,
+            captureErrors: captureErrors,
+            customRouteCount: customRouteCount,
+            bypassRouteCount: bypassRouteCount,
+            lastRefresh: lastRefresh,
+            officeMode: officeMode,
+            officeSwitchName: officeSwitchName,
+            officeWifiGateway: officeDetector.wifiGateway,
+            isRunning: isRunning,
+            interval: interval
+        )
+        snapshotLock.lock()
+        _cachedSnapshot = snapshot
+        snapshotLock.unlock()
     }
 
     func start(interval: Int) {
@@ -122,6 +137,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
             self.officeSwitchName = nil
+            self.updateSnapshot()
         }
         logger.info("Stopped route monitoring")
     }
@@ -188,6 +204,7 @@ final class MonitorLoop: @unchecked Sendable {
         }
 
         lastRefresh = Date()
+        updateSnapshot()
     }
 
     private func handleNetworkChange() {
@@ -213,8 +230,17 @@ final class MonitorLoop: @unchecked Sendable {
         startCaptures()
         officeMode = officeDetector.evaluate()
 
+        // Flush any stale cloned host routes left over from the previous IP
+        // address. After a DHCP change (e.g. coffee shop → home) the kernel
+        // retains /32 and /128 WASCLONED entries that still carry the old
+        // preferred source address, causing EADDRNOTAVAIL for new connections
+        // to those destinations. We delete them here so they are re-cloned
+        // with the correct source address when routes are reinstalled below.
+        RouteEngine.flushStaleHostRoutes()
+
         reloadAndApplyRoutes()
         lastRefresh = Date()
+        updateSnapshot()
     }
 
     // MARK: - CDP/LLDP Capture
@@ -284,6 +310,8 @@ final class MonitorLoop: @unchecked Sendable {
         if officeDetector.lastDiscoveryTime != previousDiscoveryTime {
             officeSwitchName = device.systemName ?? device.deviceId
         }
+
+        updateSnapshot()
     }
 
     // MARK: - Routes
@@ -347,8 +375,19 @@ final class MonitorLoop: @unchecked Sendable {
 
             lastBypassGateway = gateway
 
+            let gatewayIsIPv6 = IPValidator.isIPv6(gateway)
+
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)
+                // A route's address family must match the gateway's address family.
+                // Skipping mismatched routes avoids macOS rejecting the `route add`
+                // command (e.g. an IPv6 destination via an IPv4 gateway), which would
+                // leave those routes unset and cause ERR_ADDRESS_INVALID in browsers
+                // whose Happy Eyeballs logic prefers IPv6.
+                guard isIPv6 == gatewayIsIPv6 else {
+                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") bypass route \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
+                    continue
+                }
                 if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
                     _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
                 }
