@@ -72,8 +72,17 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func killZscaler(consoleUser: String, reply: @escaping (Bool, String?) -> Void) {
+        // Stop the monitor first so it can't re-install bypass /32s or custom
+        // routes between the pkill and the RouteReset. Then kill Zscaler, then
+        // run RouteReset to clear the stale utun-scoped defaults, flush leftover
+        // /32s pinned to the previous gateway, and bounce active en* services so
+        // IPv4 default + DNS come back without Zscaler's 100.64.0.1 override.
+        logger.info("killZscaler: stopping monitor → killing Zscaler → resetting routes")
+        monitorLoop.stop()
         ZscalerServiceManager.kill(consoleUser: consoleUser)
-        reply(true, nil)
+        let result = RouteReset.run()
+        let err = result.errors.isEmpty ? nil : result.errors.joined(separator: "; ")
+        reply(err == nil, err)
     }
 
     func getStatus(reply: @escaping (Data) -> Void) {
@@ -135,5 +144,11 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
 
     func getVersion(reply: @escaping (String) -> Void) {
         reply(BuildInfo.gitCommitSHA)
+    }
+
+    func resetRoutes(reply: @escaping ([String], String?) -> Void) {
+        let result = RouteReset.run()
+        let err = result.errors.isEmpty ? nil : result.errors.joined(separator: "; ")
+        reply(result.bouncedServices, err)
     }
 }

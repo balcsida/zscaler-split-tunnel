@@ -31,14 +31,16 @@ actor HelperConnection {
     /// Executes a block with the XPC proxy, with a timeout to prevent hanging when the helper is unavailable.
     /// The body receives the proxy and a reply callback; it must call reply exactly once with the result.
     private func withProxy<T: Sendable>(
+        timeout: TimeInterval? = nil,
         _ body: @escaping @Sendable (HelperToolProtocol, @escaping @Sendable (Result<T, Error>) -> Void) -> Void
     ) async throws -> T {
         let conn = connect()
+        let effectiveTimeout = timeout ?? Self.xpcTimeout
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
             let resumeOnce = ContinuationGuard(continuation: continuation)
 
             let timer = DispatchSource.makeTimerSource(queue: .global())
-            timer.schedule(deadline: .now() + Self.xpcTimeout)
+            timer.schedule(deadline: .now() + effectiveTimeout)
             timer.setEventHandler {
                 resumeOnce.resume(throwing: HelperConnectionError.timeout)
             }
@@ -174,6 +176,19 @@ actor HelperConnection {
                     reply(.failure(HelperConnectionError.remote(error)))
                 } else {
                     reply(.success(()))
+                }
+            }
+        }
+    }
+
+    func resetRoutes() async throws -> [String] {
+        // Generous timeout: flush x5 plus ~2s sleep per bounced interface.
+        try await withProxy(timeout: 30) { proxy, reply in
+            proxy.resetRoutes { bounced, error in
+                if let error {
+                    reply(.failure(HelperConnectionError.remote(error)))
+                } else {
+                    reply(.success(bounced))
                 }
             }
         }

@@ -34,6 +34,13 @@ import Foundation
     func disableAutostart(reply: @escaping (_ success: Bool, _ error: String?) -> Void)
 
     func getVersion(reply: @escaping (_ version: String) -> Void)
+
+    /// Clears stale default routes on `utun*`, flushes the routing table, and
+    /// cycles each active network service via `networksetup` to recover from a
+    /// wedged state (e.g. leftover ifscope'd IPv6 defaults from a torn-down
+    /// Zscaler tunnel, or bypass `/32`s pinned to an old network's gateway).
+    /// Warning: this briefly drops all network connectivity.
+    func resetRoutes(reply: @escaping (_ bouncedServices: [String], _ error: String?) -> Void)
 }
 
 @objc protocol HelperToolProgressProtocol {

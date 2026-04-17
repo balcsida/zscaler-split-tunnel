@@ -94,9 +94,28 @@ struct GeneralSettingsTab: View {
 
 struct AdvancedSettingsTab: View {
     @Environment(AppState.self) private var appState
+    @State private var showResetConfirm = false
 
     var body: some View {
         Form {
+            Section("Recovery") {
+                Text("If split tunneling leaves the routing table wedged (sites like claude.ai fail with ERR_ADDRESS_INVALID), this stops Zscaler and monitoring, clears stale tunnel routes, flushes the routing table, and refreshes IPv6 on active services. IPv4 connectivity stays up; IPv6 drops for about a second.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Button("Reset Routes & Recover Connectivity") {
+                    showResetConfirm = true
+                }
+                .disabled(appState.isLoading)
+                .confirmationDialog(
+                    "This will stop Zscaler, flush all routes, and refresh IPv6 on active network services. IPv4 stays up; IPv6 will blink briefly.",
+                    isPresented: $showResetConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Reset Now", role: .destructive) { appState.recoverConnectivity() }
+                    Button("Cancel", role: .cancel) {}
+                }
+            }
+
             Section("Autostart") {
                 HStack {
                     Button("Enable Autostart") {
