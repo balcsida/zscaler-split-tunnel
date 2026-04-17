@@ -31,6 +31,20 @@ jobs:
           }
           EOF
 
+      - name: Stamp bundle version
+        # Each release must have a distinct CFBundleVersion so Background Task
+        # Management (launchd/smd) treats it as a new helper binary. Otherwise
+        # BTM caches the previous helper's SHA256 and rejects the new binary
+        # with EX_CONFIG (exit 78) after reinstall.
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          for plist in \
+            macOS/ZscalerSplitTunnel/Resources/Info.plist \
+            macOS/ZscalerSplitTunnelHelper/Info.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$plist"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$plist"
+          done
+
       - name: Build
         run: |
           xcodebuild build \
