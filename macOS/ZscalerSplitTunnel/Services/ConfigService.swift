@@ -6,6 +6,20 @@ enum ConfigType: Sendable {
     case bypass
 }
 
+struct OfficeModeConfigDTO: Codable, Equatable, Sendable {
+    var enabled: Bool
+    var targetSSID: String
+    var cdpGracePeriodSeconds: Int
+    var switchNamePatterns: [String]
+
+    static let `default` = OfficeModeConfigDTO(
+        enabled: false,
+        targetSSID: "",
+        cdpGracePeriodSeconds: 120,
+        switchNamePatterns: []
+    )
+}
+
 @Observable
 final class ConfigService {
     var defaultRoutes = ConfigFile()
@@ -48,6 +62,49 @@ final class ConfigService {
             userBypass.remove(entry)
             try userBypass.write(to: ConfigPaths.bypassConfig)
         }
+    }
+
+    // MARK: - Office Mode
+
+    func readOfficeMode() -> OfficeModeConfigDTO {
+        guard let data = try? Data(contentsOf: ConfigPaths.officeModeConfig),
+              let dto = try? JSONDecoder().decode(OfficeModeConfigDTO.self, from: data) else {
+            return .default
+        }
+        return dto
+    }
+
+    func writeOfficeMode(_ dto: OfficeModeConfigDTO) throws {
+        try ConfigPaths.ensureUserConfigDir()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(dto)
+        try data.write(to: ConfigPaths.officeModeConfig, options: .atomic)
+    }
+
+    /// Reads the currently associated SSID from the given Wi-Fi interface using `networksetup`.
+    func currentSSID(interface: String) -> String? {
+        let task = Process()
+        task.launchPath = "/usr/sbin/networksetup"
+        task.arguments = ["-getairportnetwork", interface]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        do {
+            try task.run()
+        } catch {
+            return nil
+        }
+        task.waitUntilExit()
+        guard task.terminationStatus == 0,
+              let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
+            return nil
+        }
+        let prefix = "Current Wi-Fi Network: "
+        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix(prefix) else { return nil }
+        let ssid = String(trimmed.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        return ssid.isEmpty ? nil : ssid
     }
 
     func startWatching() {

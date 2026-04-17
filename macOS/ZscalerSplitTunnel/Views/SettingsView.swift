@@ -45,6 +45,10 @@ struct SettingsView: View {
                 .environment(appState)
                 .tabItem { Label { Text("Network Device") } icon: { fixedTabIcon("wifi.router") } }
 
+            OfficeModeTab()
+                .environment(appState)
+                .tabItem { Label { Text("Office Mode") } icon: { fixedTabIcon("building.2") } }
+
             AdvancedSettingsTab()
                 .environment(appState)
                 .tabItem { Label { Text("Advanced") } icon: { fixedTabIcon("wrench.and.screwdriver") } }
