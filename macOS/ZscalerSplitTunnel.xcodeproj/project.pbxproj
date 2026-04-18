@@ -34,6 +34,7 @@
 		7DAEAB25FD49CE1F82484A16 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6610E2F4B6D75B364E7D148 /* main.swift */; };
 		7E7E924E2E23F2E5F2ADA4DC /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8263A1294673FD2B67A79458 /* BuildInfo.swift */; };
 		8515F186474F4F5E825956EC /* MonitorLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */; };
+		940786AB59920286487F2288 /* PFRouteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9669D6077A510D309EB933BC /* PFRouteEngine.swift */; };
 		9642168AE515F605D420CEFC /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
 		97497CE3AE143CC08C7DEA3F /* DeviceFieldPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B2D28E40B4F23E10769423 /* DeviceFieldPreferences.swift */; };
 		9A21F9F0E38934B7551BFA11 /* NetworkDeviceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A8B2679A8FFB018FD60C4E /* NetworkDeviceTab.swift */; };
@@ -111,6 +112,7 @@
 		8263A1294673FD2B67A79458 /* BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.swift; sourceTree = "<group>"; };
 		8505BFD660895D27C55F9D51 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8D3A8FC66628944751E0C667 /* OfficeNetworkDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeNetworkDetector.swift; sourceTree = "<group>"; };
+		9669D6077A510D309EB933BC /* PFRouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PFRouteEngine.swift; sourceTree = "<group>"; };
 		A6F6178AC256EE526C9B0F4D /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		A70AD92ADEA5AACD9B2A103B /* HelperConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnection.swift; sourceTree = "<group>"; };
 		A768C5D6CC321EB655621E93 /* HelperTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperTool.swift; sourceTree = "<group>"; };
@@ -209,6 +211,7 @@
 				369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */,
 				706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */,
 				F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */,
+				9669D6077A510D309EB933BC /* PFRouteEngine.swift */,
 				D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */,
 				63B8A968F806D356449A0798 /* RouteEngine.swift */,
 				62C37D6CA478635CA98681C6 /* RouteReset.swift */,
@@ -462,6 +465,7 @@
 				6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */,
 				BC27AFFCD6533A313E80EC82 /* NetworkDetector.swift in Sources */,
 				70403435D4EA296E98789134 /* OfficeNetworkDetector.swift in Sources */,
+				940786AB59920286487F2288 /* PFRouteEngine.swift in Sources */,
 				3197E0A57A209A3DC770892A /* PacketCapture.swift in Sources */,
 				9642168AE515F605D420CEFC /* RemoteRouteFetcher.swift in Sources */,
 				B3A90D42C6EE219CF9EBC8C7 /* RouteEngine.swift in Sources */,
@@ -641,7 +645,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnelHelper/Info.plist;
@@ -649,7 +652,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				OTHER_CODE_SIGN_FLAGS = "-i com.zscaler-split-tunnel.helper";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
@@ -669,7 +671,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnelHelper/Info.plist;
@@ -677,7 +678,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				OTHER_CODE_SIGN_FLAGS = "-i com.zscaler-split-tunnel.helper";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
