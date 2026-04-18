@@ -22,6 +22,10 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
 
+    private static let followUpCount: Int = 4
+    private static let followUpInterval: TimeInterval = 6
+    private var pendingFollowUpSweeps: Int = 0
+
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
     private(set) var lastRefresh: Date?
@@ -133,6 +137,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.isRunning = false
             self.timer?.cancel()
             self.timer = nil
+            self.pendingFollowUpSweeps = 0
             self.stopCaptures()
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
@@ -238,9 +243,31 @@ final class MonitorLoop: @unchecked Sendable {
         // with the correct source address when routes are reinstalled below.
         RouteEngine.flushStaleHostRoutes()
 
-        reloadAndApplyRoutes()
+        reloadAndApplyRoutes(forceReplace: true)
         lastRefresh = Date()
         updateSnapshot()
+        scheduleFollowUpSweeps()
+    }
+
+    /// After a network change, Zscaler reconnects asynchronously and may reinstall
+    /// its broad routes *after* `handleNetworkChange` has already swept. Schedule
+    /// a short series of follow-up broad-route sweeps to catch that race without
+    /// waiting for the full monitor cycle.
+    private func scheduleFollowUpSweeps() {
+        pendingFollowUpSweeps = Self.followUpCount
+        scheduleNextFollowUpSweep()
+    }
+
+    private func scheduleNextFollowUpSweep() {
+        guard pendingFollowUpSweeps > 0 else { return }
+        queue.asyncAfter(deadline: .now() + Self.followUpInterval) { [weak self] in
+            guard let self, self.isRunning, self.pendingFollowUpSweeps > 0 else { return }
+            self.pendingFollowUpSweeps -= 1
+            let done = Self.followUpCount - self.pendingFollowUpSweeps
+            self.logger.info("Follow-up broad-route sweep (\(done)/\(Self.followUpCount))")
+            _ = BroadRouteManager.removeBroadRoutes()
+            self.scheduleNextFollowUpSweep()
+        }
     }
 
     // MARK: - CDP/LLDP Capture
@@ -316,7 +343,7 @@ final class MonitorLoop: @unchecked Sendable {
 
     // MARK: - Routes
 
-    private func reloadAndApplyRoutes() {
+    private func reloadAndApplyRoutes(forceReplace: Bool = false) {
         _ = BroadRouteManager.removeBroadRoutes()
 
         let customRoutes = configLoader.loadRoutes(
@@ -332,7 +359,7 @@ final class MonitorLoop: @unchecked Sendable {
         bypassRouteCount = bypassRoutes.count
 
         addRoutes(customRoutes, bypass: false)
-        addRoutes(bypassRoutes, bypass: true)
+        addRoutes(bypassRoutes, bypass: true, forceReplace: forceReplace)
     }
 
     private func addCustomRoutes() {
@@ -361,7 +388,7 @@ final class MonitorLoop: @unchecked Sendable {
         return RouteEngine.getDefaultGateway()
     }
 
-    private func addRoutes(_ routes: [String], bypass: Bool) {
+    private func addRoutes(_ routes: [String], bypass: Bool, forceReplace: Bool = false) {
         if bypass {
             let gateway = resolveBypassGateway()
             guard let gateway else {
@@ -388,7 +415,9 @@ final class MonitorLoop: @unchecked Sendable {
                     logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") bypass route \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
-                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                if forceReplace {
+                    _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
+                } else if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
                     _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
                 }
             }

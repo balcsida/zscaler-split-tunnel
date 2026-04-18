@@ -165,6 +165,24 @@ final class AppState {
         killZscaler()
     }
 
+    /// Invokes the helper's full route reset (flush routing table, bounce DHCP).
+    /// Briefly drops all connectivity before the monitor re-applies routes.
+    func resetRoutes() {
+        Task {
+            isLoading = true
+            errorMessage = nil
+            pendingMonitorStart = true
+            defer { pendingMonitorStart = false }
+            do {
+                _ = try await helperConnection.resetRoutes()
+                errorMessage = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isLoading = false
+        }
+    }
+
     func startStatusPolling() {
         pollingTask?.cancel()
         pollingTask = Task { [weak self] in

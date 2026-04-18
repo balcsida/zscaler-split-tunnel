@@ -38,6 +38,14 @@ enum RouteEngine {
         return result.exitCode == 0
     }
 
+    /// Replaces any existing route to `destination` with a fresh one via `gateway`.
+    /// Best-effort delete then add — handles the stale-gateway case on network change
+    /// where `routeExists` would otherwise leave an entry pinned to the old gateway.
+    static func replaceBypassRoute(destination: String, gateway: String, isIPv6: Bool) -> Bool {
+        _ = deleteRoute(destination: destination, isIPv6: isIPv6)
+        return addBypassRoute(destination: destination, gateway: gateway, isIPv6: isIPv6)
+    }
+
     static func routeExists(destination: String, isIPv6: Bool) -> Bool {
         let family = isIPv6 ? "inet6" : "inet"
         let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", family])
