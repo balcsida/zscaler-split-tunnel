@@ -22,6 +22,10 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
 
+    private static let followUpCount: Int = 4
+    private static let followUpInterval: TimeInterval = 6
+    private var pendingFollowUpSweeps: Int = 0
+
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
     private(set) var lastRefresh: Date?
@@ -133,6 +137,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.isRunning = false
             self.timer?.cancel()
             self.timer = nil
+            self.pendingFollowUpSweeps = 0
             self.stopCaptures()
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
@@ -241,6 +246,28 @@ final class MonitorLoop: @unchecked Sendable {
         reloadAndApplyRoutes(forceReplace: true)
         lastRefresh = Date()
         updateSnapshot()
+        scheduleFollowUpSweeps()
+    }
+
+    /// After a network change, Zscaler reconnects asynchronously and may reinstall
+    /// its broad routes *after* `handleNetworkChange` has already swept. Schedule
+    /// a short series of follow-up broad-route sweeps to catch that race without
+    /// waiting for the full monitor cycle.
+    private func scheduleFollowUpSweeps() {
+        pendingFollowUpSweeps = Self.followUpCount
+        scheduleNextFollowUpSweep()
+    }
+
+    private func scheduleNextFollowUpSweep() {
+        guard pendingFollowUpSweeps > 0 else { return }
+        queue.asyncAfter(deadline: .now() + Self.followUpInterval) { [weak self] in
+            guard let self, self.isRunning, self.pendingFollowUpSweeps > 0 else { return }
+            self.pendingFollowUpSweeps -= 1
+            let done = Self.followUpCount - self.pendingFollowUpSweeps
+            self.logger.info("Follow-up broad-route sweep (\(done)/\(Self.followUpCount))")
+            _ = BroadRouteManager.removeBroadRoutes()
+            self.scheduleNextFollowUpSweep()
+        }
     }
 
     // MARK: - CDP/LLDP Capture
