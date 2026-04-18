@@ -238,7 +238,7 @@ final class MonitorLoop: @unchecked Sendable {
         // with the correct source address when routes are reinstalled below.
         RouteEngine.flushStaleHostRoutes()
 
-        reloadAndApplyRoutes()
+        reloadAndApplyRoutes(forceReplace: true)
         lastRefresh = Date()
         updateSnapshot()
     }
@@ -316,7 +316,7 @@ final class MonitorLoop: @unchecked Sendable {
 
     // MARK: - Routes
 
-    private func reloadAndApplyRoutes() {
+    private func reloadAndApplyRoutes(forceReplace: Bool = false) {
         _ = BroadRouteManager.removeBroadRoutes()
 
         let customRoutes = configLoader.loadRoutes(
@@ -332,7 +332,7 @@ final class MonitorLoop: @unchecked Sendable {
         bypassRouteCount = bypassRoutes.count
 
         addRoutes(customRoutes, bypass: false)
-        addRoutes(bypassRoutes, bypass: true)
+        addRoutes(bypassRoutes, bypass: true, forceReplace: forceReplace)
     }
 
     private func addCustomRoutes() {
@@ -361,7 +361,7 @@ final class MonitorLoop: @unchecked Sendable {
         return RouteEngine.getDefaultGateway()
     }
 
-    private func addRoutes(_ routes: [String], bypass: Bool) {
+    private func addRoutes(_ routes: [String], bypass: Bool, forceReplace: Bool = false) {
         if bypass {
             let gateway = resolveBypassGateway()
             guard let gateway else {
@@ -388,7 +388,9 @@ final class MonitorLoop: @unchecked Sendable {
                     logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") bypass route \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
-                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                if forceReplace {
+                    _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
+                } else if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
                     _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
                 }
             }
