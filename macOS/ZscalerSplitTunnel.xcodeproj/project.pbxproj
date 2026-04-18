@@ -57,6 +57,7 @@
 		8515F186474F4F5E825956EC /* MonitorLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */; };
 		8855908620F421D393B67DB2 /* ProxySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */; };
 		8D7962C008DD5747D479DD61 /* RecoveryNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E8BC7FE6199E76B81C7CC40 /* RecoveryNotificationService.swift */; };
+		940786AB59920286487F2288 /* PFRouteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9669D6077A510D309EB933BC /* PFRouteEngine.swift */; };
 		9642168AE515F605D420CEFC /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
 		97497CE3AE143CC08C7DEA3F /* DeviceFieldPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B2D28E40B4F23E10769423 /* DeviceFieldPreferences.swift */; };
 		981AAAD6642132A706DAA2DE /* DiscoveredDeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C25FF9FC9BEB262D15730E2 /* DiscoveredDeviceInfo.swift */; };
@@ -171,6 +172,7 @@
 		8C41676E200EF18A76D56F15 /* HelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInstaller.swift; sourceTree = "<group>"; };
 		8D3A8FC66628944751E0C667 /* OfficeNetworkDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeNetworkDetector.swift; sourceTree = "<group>"; };
 		8FB2C7DA287EF39B963EEFAF /* DNSResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSResolverTests.swift; sourceTree = "<group>"; };
+		9669D6077A510D309EB933BC /* PFRouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PFRouteEngine.swift; sourceTree = "<group>"; };
 		A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnectionTests.swift; sourceTree = "<group>"; };
 		A6CACC854CCC59F099A26672 /* HelperStatusCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperStatusCache.swift; sourceTree = "<group>"; };
 		A6F6178AC256EE526C9B0F4D /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
@@ -304,6 +306,7 @@
 				369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */,
 				706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */,
 				F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */,
+				9669D6077A510D309EB933BC /* PFRouteEngine.swift */,
 				745D89BE5EDAFF6597D1A8A2 /* ReconciliationSchedule.swift */,
 				D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */,
 				63B8A968F806D356449A0798 /* RouteEngine.swift */,
@@ -706,6 +709,7 @@
 				6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */,
 				BC27AFFCD6533A313E80EC82 /* NetworkDetector.swift in Sources */,
 				70403435D4EA296E98789134 /* OfficeNetworkDetector.swift in Sources */,
+				940786AB59920286487F2288 /* PFRouteEngine.swift in Sources */,
 				3197E0A57A209A3DC770892A /* PacketCapture.swift in Sources */,
 				3487DDC23B35EF0670681FAC /* ProxySettings.swift in Sources */,
 				0C0BE9FE98DBF403666DC2F5 /* ReconciliationSchedule.swift in Sources */,
