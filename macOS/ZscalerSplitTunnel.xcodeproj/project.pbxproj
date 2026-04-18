@@ -22,6 +22,7 @@
 		46E2E9925977AF62F9CB9CD7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CA5A80B558447826FF03E85 /* ServiceManagement.framework */; };
 		50A484F9EBECCCCB377C46C4 /* CDPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFBBC5945F841E5B3C79C79 /* CDPParser.swift */; };
 		5535DF5F141D83700EF34C0F /* ZscalerSplitTunnelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0267894E6C00F4D435F91E /* ZscalerSplitTunnelApp.swift */; };
+		6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */; };
 		63302E31DE378916A530BC2E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8505BFD660895D27C55F9D51 /* SettingsView.swift */; };
 		6D59A76123A203743736F9EB /* DiscoveredDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB03AE888CC51567A99E2C1D /* DiscoveredDevice.swift */; };
 		6D74151F45604B59AE551F06 /* RoutesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402F29765F54B12DA8FF0E2E /* RoutesListView.swift */; };
@@ -101,6 +102,7 @@
 		63B8A968F806D356449A0798 /* RouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteEngine.swift; sourceTree = "<group>"; };
 		6485E40BE3C0FC20299AD49D /* RouteInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteInfo.swift; sourceTree = "<group>"; };
 		6CA5A80B558447826FF03E85 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChangeMonitor.swift; sourceTree = "<group>"; };
 		725D72DA06B4F68E4A028B5D /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		79A0C157F5092CDDBE7C328E /* ZscalerProcessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerProcessManager.swift; sourceTree = "<group>"; };
 		7AF6FDEF33313670F0ACF124 /* PacketCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketCapture.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 				CFB0B04869C3F2898F38CC00 /* IPValidator.swift */,
 				E6610E2F4B6D75B364E7D148 /* main.swift */,
 				369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */,
+				706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */,
 				F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */,
 				D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */,
 				63B8A968F806D356449A0798 /* RouteEngine.swift */,
@@ -456,6 +459,7 @@
 				B90BBC568F27AF39C6FD264E /* IPValidator.swift in Sources */,
 				E0656C9457BE630CCEE05BAD /* LLDPParser.swift in Sources */,
 				8515F186474F4F5E825956EC /* MonitorLoop.swift in Sources */,
+				6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */,
 				BC27AFFCD6533A313E80EC82 /* NetworkDetector.swift in Sources */,
 				70403435D4EA296E98789134 /* OfficeNetworkDetector.swift in Sources */,
 				3197E0A57A209A3DC770892A /* PacketCapture.swift in Sources */,
