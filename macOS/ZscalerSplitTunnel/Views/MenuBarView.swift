@@ -195,6 +195,14 @@ struct MenuBarView: View {
             MenuButton(title: "Flush DNS Cache", icon: "arrow.triangle.2.circlepath") {
                 appState.flushDNS()
             }
+
+            Divider()
+                .padding(.vertical, 2)
+
+            MenuButton(title: "Reset Routes", icon: "network.slash", role: .destructive,
+                       disabled: appState.isLoading) {
+                appState.resetRoutes()
+            }
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
