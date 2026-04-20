@@ -645,6 +645,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnelHelper/Info.plist;
@@ -652,6 +653,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_CODE_SIGN_FLAGS = "-i com.zscaler-split-tunnel.helper";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
@@ -671,6 +673,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnelHelper/Info.plist;
@@ -678,6 +681,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_CODE_SIGN_FLAGS = "-i com.zscaler-split-tunnel.helper";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
