@@ -4,6 +4,7 @@ import os
 final class MonitorLoop: @unchecked Sendable {
     private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "MonitorLoop")
     private let configLoader: ConfigLoader
+    private let networkMonitor = NetworkChangeMonitor()
 
     let officeDetector = OfficeNetworkDetector()
 
@@ -121,6 +122,15 @@ final class MonitorLoop: @unchecked Sendable {
             self.runCycle()
         }
 
+        // Event-driven network change detection via SCDynamicStore. The polling
+        // timer below is retained as a safety net and still handles config
+        // reloads, interface-list diffs, and broad-route sweeps, but the
+        // primary "network changed" trigger is now event-driven.
+        networkMonitor.start { [weak self] in
+            guard let self else { return }
+            self.queue.async { [weak self] in self?.handleNetworkChangeEvent() }
+        }
+
         // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now() + .seconds(interval), repeating: .seconds(interval))
@@ -132,6 +142,7 @@ final class MonitorLoop: @unchecked Sendable {
     }
 
     func stop() {
+        networkMonitor.stop()
         queue.sync { [weak self] in
             guard let self else { return }
             self.isRunning = false
@@ -210,6 +221,23 @@ final class MonitorLoop: @unchecked Sendable {
 
         lastRefresh = Date()
         updateSnapshot()
+    }
+
+    /// Entry point for SCDynamicStore-driven change notifications. Runs on
+    /// `queue`. Re-checks the network signature so duplicate events coalesced
+    /// after the debounce window (e.g. v4-then-v6 updates that land within the
+    /// same transition) still produce exactly one `handleNetworkChange` pass.
+    private func handleNetworkChangeEvent() {
+        guard isRunning else { return }
+        let currentSignature = NetworkDetector.getNetworkSignature()
+        guard currentSignature != lastNetworkSignature else {
+            logger.debug("SC event: signature unchanged (\(currentSignature, privacy: .public)), skipping")
+            return
+        }
+        let previous = lastNetworkSignature ?? "(none)"
+        logger.info("SC event: network changed from '\(previous, privacy: .public)' to '\(currentSignature, privacy: .public)'")
+        lastNetworkSignature = currentSignature
+        handleNetworkChange()
     }
 
     private func handleNetworkChange() {
