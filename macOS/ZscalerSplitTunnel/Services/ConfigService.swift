@@ -117,27 +117,41 @@ final class ConfigService {
         ]
 
         for fileURL in filesToWatch {
-            let fd = open(fileURL.path, O_EVTONLY)
-            guard fd >= 0 else { continue }
-            watchDescriptors.append(fd)
-
-            let source = DispatchSource.makeFileSystemObjectSource(
-                fileDescriptor: fd,
-                eventMask: .write,
-                queue: .main
-            )
-
-            source.setEventHandler { [weak self] in
-                self?.load()
-            }
-
-            source.setCancelHandler {
-                close(fd)
-            }
-
-            source.resume()
-            watchSources.append(source)
+            watchFile(fileURL)
         }
+    }
+
+    /// Atomic writes (`String.write(to:atomically:)` / editors using write-temp +
+    /// rename) unlink the original inode, so a source bound to that fd stops
+    /// firing on subsequent edits. We subscribe to `.delete`/`.rename` as well
+    /// and re-establish the watcher whenever the file is replaced.
+    private func watchFile(_ fileURL: URL) {
+        let fd = open(fileURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        watchDescriptors.append(fd)
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .delete, .rename],
+            queue: .main
+        )
+
+        source.setEventHandler { [weak self, weak source] in
+            guard let self, let source else { return }
+            let mask = source.data
+            self.load()
+            if mask.contains(.delete) || mask.contains(.rename) {
+                source.cancel()
+                self.watchFile(fileURL)
+            }
+        }
+
+        source.setCancelHandler {
+            close(fd)
+        }
+
+        source.resume()
+        watchSources.append(source)
     }
 
     func stopWatching() {

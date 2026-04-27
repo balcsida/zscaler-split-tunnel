@@ -27,6 +27,10 @@ final class AppState {
         // the first successful XPC round-trip.
         let svcStatus = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist").status
         isHelperInstalled = svcStatus == .enabled || svcStatus == .requiresApproval
+        // Populate config from disk and watch for external edits so the in-memory
+        // snapshot stays current without depending on the Settings tab being opened.
+        configService.load()
+        configService.startWatching()
         startStatusPolling()
     }
 
