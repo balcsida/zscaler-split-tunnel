@@ -43,24 +43,24 @@ final class ConfigService {
     }
 
     func addEntry(_ entry: ConfigEntry, to config: ConfigType) throws {
-        switch config {
-        case .routes:
-            userRoutes.append(entry)
-            try userRoutes.write(to: ConfigPaths.routesConfig)
-        case .bypass:
-            userBypass.append(entry)
-            try userBypass.write(to: ConfigPaths.bypassConfig)
-        }
+        try mutate(config) { $0.append(entry) }
     }
 
     func removeEntry(_ entry: ConfigEntry, from config: ConfigType) throws {
+        try mutate(config) { $0.remove(entry) }
+    }
+
+    /// Re-reads the file from disk, applies `change`, then writes back.
+    /// Avoids clobbering external edits (or entries added in another window)
+    /// that the in-memory snapshot hasn't seen.
+    private func mutate(_ config: ConfigType, _ change: (inout ConfigFile) -> Void) throws {
+        let path = config == .routes ? ConfigPaths.routesConfig : ConfigPaths.bypassConfig
+        var current = (try? ConfigFile.parse(contentsOf: path)) ?? ConfigFile()
+        change(&current)
+        try current.write(to: path)
         switch config {
-        case .routes:
-            userRoutes.remove(entry)
-            try userRoutes.write(to: ConfigPaths.routesConfig)
-        case .bypass:
-            userBypass.remove(entry)
-            try userBypass.write(to: ConfigPaths.bypassConfig)
+        case .routes: userRoutes = current
+        case .bypass: userBypass = current
         }
     }
 
