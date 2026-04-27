@@ -456,9 +456,7 @@ final class MonitorLoop: @unchecked Sendable {
             }
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)
-                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
-                    _ = RouteEngine.addRoute(destination: route, interface: iface, isIPv6: isIPv6)
-                }
+                _ = RouteEngine.replaceRoute(destination: route, interface: iface, isIPv6: isIPv6)
             }
         }
     }
