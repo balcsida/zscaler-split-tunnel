@@ -3,12 +3,19 @@
 xcuserdata/
 DerivedData/
 *.xcworkspace/xcuserdata/
+build/
 
 # macOS
 .DS_Store
 
-# Brainstorming
+# Local planning / agent scratch
 .superpowers/
+docs/superpowers/
+PLAN-*.md
+macOS/PLAN-*.md
+scripts/pf-spike-smoketest.sh
 
-# Claude
+# Local assistant / editor config
 .claude/settings.local.json
+.codex/
+.tabnine/
