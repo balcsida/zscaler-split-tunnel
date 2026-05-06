@@ -32,6 +32,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app
         INFOPLIST_FILE: ZscalerSplitTunnel/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: ZscalerSplitTunnel/Resources/ZscalerSplitTunnel.entitlements
+        CODE_SIGN_IDENTITY: Apple Development
+        DEVELOPMENT_TEAM: 8A7FU99APT
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         COMBINE_HIDPI_IMAGES: "YES"
         ENABLE_HARDENED_RUNTIME: "YES"
@@ -64,6 +66,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper
         INFOPLIST_FILE: ZscalerSplitTunnelHelper/Info.plist
+        CODE_SIGN_IDENTITY: Apple Development
+        DEVELOPMENT_TEAM: 8A7FU99APT
         PRODUCT_NAME: com.zscaler-split-tunnel.helper
         SKIP_INSTALL: "YES"
         ENABLE_HARDENED_RUNTIME: "YES"
