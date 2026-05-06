@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Security
 import ServiceManagement
 
 @Observable
@@ -42,6 +43,13 @@ final class AppState {
         Task {
             let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
             do {
+                if let signingProblem = helperLaunchSigningProblem() {
+                    errorMessage = signingProblem
+                    isHelperInstalled = service.status == .enabled
+                    isLoading = false
+                    return
+                }
+
                 // Unregister whenever BTM has any record of the helper, not just
                 // when it's `.enabled`. After a rebuild, the binary's SHA256 no
                 // longer matches what BTM cached; if we skip unregister and only
@@ -239,10 +247,66 @@ final class AppState {
                 errorMessage = "Approve helper in System Settings → General → Login Items"
             case .enabled:
                 isHelperInstalled = true
-                errorMessage = inGrace ? nil : "Helper not responding"
+                errorMessage = inGrace ? nil : (helperLaunchSigningProblem() ?? "Helper not responding")
             @unknown default:
                 break
             }
         }
+    }
+
+    private func helperLaunchSigningProblem() -> String? {
+        let helperURL = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/LaunchServices")
+            .appendingPathComponent(AppConstants.helperBundleID)
+
+        guard FileManager.default.isExecutableFile(atPath: helperURL.path) else {
+            return "Helper executable is missing from the app bundle. Rebuild the app and reinstall the helper."
+        }
+
+        if let appIssue = codeSigningIssue(for: Bundle.main.bundleURL, componentName: "app") {
+            return helperLaunchError(for: appIssue)
+        }
+
+        if let helperIssue = codeSigningIssue(for: helperURL, componentName: "helper") {
+            return helperLaunchError(for: helperIssue)
+        }
+
+        return nil
+    }
+
+    private func helperLaunchError(for issue: String) -> String {
+        "Helper cannot launch because the \(issue). Build the app with a valid Apple Development or Developer ID certificate, then reinstall the helper."
+    }
+
+    private func codeSigningIssue(for url: URL, componentName: String) -> String? {
+        var staticCode: SecStaticCode?
+        let createStatus = SecStaticCodeCreateWithPath(url as CFURL, SecCSFlags(), &staticCode)
+        guard createStatus == errSecSuccess, let staticCode else {
+            return "\(componentName) code signature cannot be read (\(securityErrorMessage(createStatus)))"
+        }
+
+        var signingInfo: CFDictionary?
+        let infoStatus = SecCodeCopySigningInformation(
+            staticCode,
+            SecCSFlags(rawValue: kSecCSSigningInformation),
+            &signingInfo
+        )
+        if infoStatus == errSecSuccess,
+           let info = signingInfo as? [String: Any],
+           let flags = (info[kSecCodeInfoFlags as String] as? NSNumber)?.uint32Value,
+           flags & 0x0002 != 0 {
+            return "\(componentName) is signed to run locally"
+        }
+
+        let validityStatus = SecStaticCodeCheckValidity(staticCode, SecCSFlags(), nil)
+        guard validityStatus == errSecSuccess else {
+            return "\(componentName) code signature is invalid (\(securityErrorMessage(validityStatus)))"
+        }
+
+        return nil
+    }
+
+    private func securityErrorMessage(_ status: OSStatus) -> String {
+        SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
     }
 }
