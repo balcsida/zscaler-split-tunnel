@@ -8,7 +8,7 @@ import os
 ///    `route -n flush` will not remove these (they are ifscope-bound and the
 ///    utun iface is still up), so IPv6 has no usable global default and Happy
 ///    Eyeballs requests (e.g. claude.ai) fail with ERR_ADDRESS_INVALID.
-/// 2. Bypass `/32`s pinned to a gateway from a previous network (e.g. an office
+/// 2. Direct override `/32`s pinned to a gateway from a previous network (e.g. an office
 ///    Wi-Fi gateway) persist after the user moves to a new network. Flush
 ///    removes these; the monitor re-adds them through the current gateway on
 ///    its next cycle.
@@ -16,7 +16,7 @@ import os
 /// Recovery runs four passes, in order:
 ///   1. Explicitly delete any default routes (v4 and v6) scoped to `utun*`.
 ///   2. `route -n flush` several times for anything else (including stale
-///      bypass /32s).
+///      direct override /32s).
 ///   3. Renew DHCP on each active en* service (`-setdhcp`). The flush dropped
 ///      the IPv4 default route — without this, Zscaler can't even reach its
 ///      brokers and traffic to anything outside the LAN dies with

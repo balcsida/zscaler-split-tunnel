@@ -9,7 +9,7 @@ Zscaler Split Tunnel enables split tunneling on macOS by removing Zscaler's broa
 zscaler-split-tunnel.sh          # Standalone Bash daemon (original implementation)
 config/
   zscaler-split-tunnel.conf      # Default routes config (domains/IPs routed through Zscaler)
-  zscaler-bypass.conf            # Default bypass config (domains routed directly, bypassing Zscaler)
+  zscaler-bypass.conf            # Default direct overrides (domains routed directly)
 macOS/
   ZscalerSplitTunnel.xcodeproj/  # Xcode project (two targets)
   Shared/                        # Code shared between app and helper
@@ -94,7 +94,7 @@ No automated tests. Validate manually:
 
 ## Configuration Files
 - `~/.config/zscaler-split-tunnel/routes.conf` - domains/IPs to route through Zscaler (one per line, `#` comments)
-- `~/.config/zscaler-split-tunnel/bypass.conf` - domains to bypass Zscaler (routed directly)
+- `~/.config/zscaler-split-tunnel/bypass.conf` - direct overrides routed outside Zscaler
 - Legacy paths `~/.config/zscaler-split-tunnel.conf` and `~/.config/zscaler-bypass.conf` are auto-migrated
 - Runtime state (`domain-cache.txt`, `remote-route-cache.txt`) lives alongside config
 

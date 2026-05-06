@@ -18,7 +18,7 @@ struct ConfigEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(configType == .routes ? "Custom Routes" : "Bypass Routes")
+                Text(configType == .routes ? "Zscaler Routes" : "Direct Overrides")
                     .font(.headline)
                 Spacer()
                 Button {

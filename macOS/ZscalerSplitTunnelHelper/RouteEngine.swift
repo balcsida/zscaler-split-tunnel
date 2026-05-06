@@ -21,9 +21,9 @@ enum RouteEngine {
         let result = ShellRunner.runCapturingStderr("/sbin/route",
             arguments: ["-n", "add", flag, destination, "-gateway", gateway])
         if result.exitCode == 0 {
-            logger.info("Added bypass route \(destination, privacy: .public) via gateway \(gateway, privacy: .public)")
+            logger.info("Added direct override \(destination, privacy: .public) via gateway \(gateway, privacy: .public)")
         } else {
-            logger.warning("Failed to add bypass route \(destination, privacy: .public) via gateway \(gateway, privacy: .public) (exit=\(result.exitCode, privacy: .public)): \(result.stderr, privacy: .public)")
+            logger.warning("Failed to add direct override \(destination, privacy: .public) via gateway \(gateway, privacy: .public) (exit=\(result.exitCode, privacy: .public)): \(result.stderr, privacy: .public)")
         }
         return result.exitCode == 0
     }

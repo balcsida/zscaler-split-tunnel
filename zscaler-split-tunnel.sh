@@ -82,9 +82,9 @@ IPV6_BROAD_ROUTES=(
     "8000::/1"  # Other half of IPv6 space
 )
 
-# Custom routes to add through Zscaler (populated from config)
+# Zscaler routes to add through the tunnel (populated from config)
 declare -a CUSTOM_ROUTES=()
-# Routes to bypass Zscaler completely (populated from bypass config)
+# Direct overrides to route outside Zscaler (populated from direct override config)
 declare -a BYPASS_ROUTES=()
 # Initialize domain cache (associative array not used for compatibility)
 
@@ -173,7 +173,7 @@ handle_network_change() {
     # Clear DNS cache to force re-resolution with new network
     clear_dns_cache
 
-    # Remove all existing custom and bypass routes
+    # Remove all existing Zscaler routes and direct overrides
     remove_custom_routes
     remove_bypass_routes
 
@@ -184,10 +184,10 @@ handle_network_change() {
     # Remove broad routes
     remove_broad_routes
 
-    # Re-add custom routes with new Zscaler interface
+    # Re-add Zscaler routes with new tunnel interface
     add_custom_routes
 
-    # Re-add bypass routes with new gateway
+    # Re-add direct overrides with new gateway
     add_bypass_routes
 
     log SUCCESS "Routes refreshed for new network"
@@ -262,7 +262,7 @@ ensure_default_bypass_entries() {
 
     if [[ ! -f "$BYPASS_CONFIG_FILE" ]]; then
         : > "$BYPASS_CONFIG_FILE"
-        vlog "Initialized bypass override file at $BYPASS_CONFIG_FILE"
+        vlog "Initialized direct override file at $BYPASS_CONFIG_FILE"
     fi
 }
 
@@ -473,7 +473,7 @@ PY
     return 0
 }
 
-# Function to load bypass configuration
+# Function to load direct override configuration
 load_bypass_config() {
     BYPASS_ROUTES=()
 
@@ -491,15 +491,15 @@ load_bypass_config() {
     fi
 
     if [[ ${#sources[@]} -eq 0 ]]; then
-        vlog "No bypass configuration found"
+        vlog "No direct override configuration found"
         return
     fi
 
     local source
     for source in "${sources[@]}"; do
-        vlog "Loading bypass configuration from $source"
+        vlog "Loading direct override configuration from $source"
 
-        # Process each line in bypass config
+        # Process each line in direct override config
         while IFS= read -r line; do
             # Skip empty lines and comments
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
@@ -522,9 +522,9 @@ load_bypass_config() {
 
             if is_domain "$normalized_line"; then
                 if (( is_wildcard )); then
-                    vlog "Resolving bypass wildcard: $original_line (normalized to $normalized_line)"
+                    vlog "Resolving direct override wildcard: $original_line (normalized to $normalized_line)"
                 else
-                    vlog "Resolving bypass domain: $normalized_line"
+                    vlog "Resolving direct override domain: $normalized_line"
                 fi
                 local ips
                 ips=$(resolve_domain "$normalized_line")
@@ -534,14 +534,14 @@ load_bypass_config() {
                         local candidate="$ip/32"
                         if [[ " ${BYPASS_ROUTES[*]} " != *" $candidate "* ]]; then
                             BYPASS_ROUTES+=("$candidate")
-                            vlog "  Added bypass IP: $candidate"
+                            vlog "  Added direct override IP: $candidate"
                         fi
                     done
                 else
-                    log WARN "Failed to resolve bypass domain in $source: $original_line"
+                    log WARN "Failed to resolve direct override domain in $source: $original_line"
                 fi
             elif is_url "$line"; then
-                vlog "Fetching bypass routes from remote source: $line"
+                vlog "Fetching direct overrides from remote source: $line"
                 local remote_entries=""
                 remote_entries=$(fetch_remote_routes "$line")
                 if [[ -n "$remote_entries" ]]; then
@@ -560,25 +560,25 @@ load_bypass_config() {
                         fi
                     done <<< "$remote_entries"
                     if (( remote_count > 0 )); then
-                        log INFO "Loaded $remote_count bypass routes from $line"
+                        log INFO "Loaded $remote_count direct overrides from $line"
                     else
-                        vlog "No new bypass routes from remote source: $line"
+                        vlog "No new direct overrides from remote source: $line"
                     fi
                 else
-                    log WARN "Failed to load bypass routes from remote source: $line"
+                    log WARN "Failed to load direct overrides from remote source: $line"
                 fi
             elif validate_ip_cidr "$line"; then
                 if [[ " ${BYPASS_ROUTES[*]} " != *" $line "* ]]; then
                     BYPASS_ROUTES+=("$line")
-                    vlog "Added bypass IP/CIDR from $source: $line"
+                    vlog "Added direct override IP/CIDR from $source: $line"
                 fi
             else
-                log WARN "Invalid entry in bypass config ($source): $original_line"
+                log WARN "Invalid entry in direct override config ($source): $original_line"
             fi
         done < "$source"
     done
 
-    log INFO "Loaded ${#BYPASS_ROUTES[@]} bypass routes from ${#sources[@]} source(s)"
+    log INFO "Loaded ${#BYPASS_ROUTES[@]} direct overrides from ${#sources[@]} source(s)"
 }
 
 # Function to load configuration
@@ -597,7 +597,7 @@ load_config() {
     fi
 
     if [[ ${#sources[@]} -eq 0 ]]; then
-        vlog "No custom routes configuration found"
+        vlog "No Zscaler routes configuration found"
         return
     fi
 
@@ -631,7 +631,7 @@ load_config() {
                     log WARN "Failed to resolve domain in $source: $line"
                 fi
             elif is_url "$line"; then
-                vlog "Fetching custom routes from remote source: $line"
+                vlog "Fetching Zscaler routes from remote source: $line"
                 local remote_entries=""
                 remote_entries=$(fetch_remote_routes "$line")
                 if [[ -n "$remote_entries" ]]; then
@@ -650,12 +650,12 @@ load_config() {
                         fi
                     done <<< "$remote_entries"
                     if (( remote_count > 0 )); then
-                        log INFO "Loaded $remote_count custom routes from $line"
+                        log INFO "Loaded $remote_count Zscaler routes from $line"
                     else
-                        vlog "No new custom routes from remote source: $line"
+                        vlog "No new Zscaler routes from remote source: $line"
                     fi
                 else
-                    log WARN "Failed to load custom routes from remote source: $line"
+                    log WARN "Failed to load Zscaler routes from remote source: $line"
                 fi
             elif validate_ip_cidr "$line"; then
                 if [[ " ${CUSTOM_ROUTES[*]} " != *" $line "* ]]; then
@@ -670,16 +670,16 @@ load_config() {
 
     # Domain cache is automatically saved to file during resolution
 
-    log INFO "Loaded ${#CUSTOM_ROUTES[@]} custom routes from ${#sources[@]} source(s)"
+    log INFO "Loaded ${#CUSTOM_ROUTES[@]} Zscaler routes from ${#sources[@]} source(s)"
 }
 
-# Function to add custom routes through Zscaler
+# Function to add Zscaler routes through the tunnel
 add_custom_routes() {
     local zscaler_interface
     zscaler_interface=$(detect_zscaler_interface)
 
     if [[ -z "$zscaler_interface" ]]; then
-        log ERROR "Cannot add custom routes: Zscaler interface not detected"
+        log ERROR "Cannot add Zscaler routes: Zscaler interface not detected"
         return 1
     fi
 
@@ -715,11 +715,11 @@ add_custom_routes() {
     done
 
     if [[ $added_count -gt 0 ]]; then
-        log SUCCESS "Added $added_count custom routes through Zscaler"
+        log SUCCESS "Added $added_count Zscaler routes"
     fi
 }
 
-# Function to add bypass routes (direct, not through Zscaler)
+# Function to add direct overrides (direct, not through Zscaler)
 add_bypass_routes() {
     local added_count=0
     local default_gateway
@@ -728,7 +728,7 @@ add_bypass_routes() {
     default_interface=$(route -n get default | grep 'interface:' | sed -E 's,.*:[[:space:]]*,,')
 
     if [[ -z "$default_gateway" || -z "$default_interface" ]]; then
-        log ERROR "Cannot add bypass routes: Default gateway/interface not detected"
+        log ERROR "Cannot add direct overrides: Default gateway/interface not detected"
         return 1
     fi
 
@@ -740,35 +740,35 @@ add_bypass_routes() {
             # IPv6 - check if route already exists
             if ! netstat -rn -f inet6 | grep -q "^${route//\//\\/}[[:space:]]"; then
                 if sudo route -n add -inet6 "$route" -gateway "$default_gateway" 2>/dev/null; then
-                    vlog "Added bypass IPv6 route: $route"
+                    vlog "Added direct override IPv6 route: $route"
                     ((added_count++))
                 else
-                    vlog "Failed to add bypass IPv6 route: $route"
+                    vlog "Failed to add direct override IPv6 route: $route"
                 fi
             else
-                vlog "Bypass IPv6 route already exists: $route"
+                vlog "Direct override IPv6 route already exists: $route"
             fi
         else
             # IPv4 - check if route already exists
             if ! netstat -rn -f inet | grep -q "^${route//\//\\/}[[:space:]]"; then
                 if sudo route -n add -net "$route" -gateway "$default_gateway" 2>/dev/null; then
-                    vlog "Added bypass IPv4 route: $route"
+                    vlog "Added direct override IPv4 route: $route"
                     ((added_count++))
                 else
-                    vlog "Failed to add bypass IPv4 route: $route"
+                    vlog "Failed to add direct override IPv4 route: $route"
                 fi
             else
-                vlog "Bypass IPv4 route already exists: $route"
+                vlog "Direct override IPv4 route already exists: $route"
             fi
         fi
     done
 
     if [[ $added_count -gt 0 ]]; then
-        log SUCCESS "Added $added_count bypass routes (direct to internet)"
+        log SUCCESS "Added $added_count direct overrides"
     fi
 }
 
-# Function to remove bypass routes
+# Function to remove direct overrides
 remove_bypass_routes() {
     local removed_count=0
 
@@ -777,24 +777,24 @@ remove_bypass_routes() {
         if [[ "$route" =~ : ]]; then
             # IPv6
             if sudo route -n delete -inet6 "$route" 2>/dev/null; then
-                vlog "Removed bypass IPv6 route: $route"
+                vlog "Removed direct override IPv6 route: $route"
                 ((removed_count++))
             fi
         else
             # IPv4
             if sudo route -n delete -net "$route" 2>/dev/null; then
-                vlog "Removed bypass IPv4 route: $route"
+                vlog "Removed direct override IPv4 route: $route"
                 ((removed_count++))
             fi
         fi
     done
 
     if [[ $removed_count -gt 0 ]]; then
-        log SUCCESS "Removed $removed_count bypass routes"
+        log SUCCESS "Removed $removed_count direct overrides"
     fi
 }
 
-# Function to remove custom routes
+# Function to remove Zscaler routes
 remove_custom_routes() {
     local removed_count=0
 
@@ -803,20 +803,20 @@ remove_custom_routes() {
         if [[ "$route" =~ : ]]; then
             # IPv6
             if sudo route -n delete -inet6 "$route" 2>/dev/null; then
-                vlog "Removed custom IPv6 route: $route"
+                vlog "Removed Zscaler IPv6 route: $route"
                 ((removed_count++))
             fi
         else
             # IPv4
             if sudo route -n delete -net "$route" 2>/dev/null; then
-                vlog "Removed custom IPv4 route: $route"
+                vlog "Removed Zscaler IPv4 route: $route"
                 ((removed_count++))
             fi
         fi
     done
 
     if [[ $removed_count -gt 0 ]]; then
-        log SUCCESS "Removed $removed_count custom routes"
+        log SUCCESS "Removed $removed_count Zscaler routes"
     fi
 }
 
@@ -900,19 +900,19 @@ apply_route_now() {
         for route in "${ips[@]}"; do
             if [[ "$route" =~ : ]]; then
                 if netstat -rn -f inet6 | grep -q "^${route//\//\\/}[[:space:]]"; then
-                    vlog "Bypass route already active: $route"
+                    vlog "Direct override already active: $route"
                 elif sudo route -n add -inet6 "$route" -gateway "$default_gateway" &>/dev/null; then
-                    log SUCCESS "Bypass route applied: $route via $default_gateway"
+                    log SUCCESS "Direct override applied: $route via $default_gateway"
                 else
-                    log WARN "Failed to apply bypass route: $route"
+                    log WARN "Failed to apply direct override: $route"
                 fi
             else
                 if netstat -rn -f inet | grep -q "^${route//\//\\/}[[:space:]]"; then
-                    vlog "Bypass route already active: $route"
+                    vlog "Direct override already active: $route"
                 elif sudo route -n add -net "$route" -gateway "$default_gateway" &>/dev/null; then
-                    log SUCCESS "Bypass route applied: $route via $default_gateway"
+                    log SUCCESS "Direct override applied: $route via $default_gateway"
                 else
-                    log WARN "Failed to apply bypass route: $route"
+                    log WARN "Failed to apply direct override: $route"
                 fi
             fi
         done
@@ -971,9 +971,9 @@ initialize_config_paths() {
 
     if [[ -f "$LEGACY_BYPASS_CONFIG_FILE" && ! -f "$BYPASS_CONFIG_FILE" ]]; then
         if mv "$LEGACY_BYPASS_CONFIG_FILE" "$BYPASS_CONFIG_FILE"; then
-            log INFO "Migrated bypass config to $BYPASS_CONFIG_FILE"
+            log INFO "Migrated direct override config to $BYPASS_CONFIG_FILE"
         else
-            log WARN "Failed to migrate legacy bypass config from $LEGACY_BYPASS_CONFIG_FILE"
+            log WARN "Failed to migrate legacy direct override config from $LEGACY_BYPASS_CONFIG_FILE"
         fi
     fi
 
@@ -1461,10 +1461,10 @@ monitor_routes() {
         # Remove broad routes
         remove_broad_routes
 
-        # Add custom routes (through Zscaler)
+        # Add Zscaler routes through the tunnel
         add_custom_routes
 
-        # Add bypass routes (direct to internet)
+        # Add direct overrides
         add_bypass_routes
 
         sleep "$INTERVAL" || true
@@ -1585,10 +1585,10 @@ start_split_tunnel() {
     # Initial removal of broad routes
     remove_broad_routes
 
-    # Add custom routes (through Zscaler)
+    # Add Zscaler routes through the tunnel
     add_custom_routes
 
-    # Add bypass routes (direct to internet)
+    # Add direct overrides
     add_bypass_routes
 
     # Check if daemon is already running
@@ -1626,7 +1626,7 @@ start_split_tunnel() {
 stop_split_tunnel() {
     log INFO "Stopping Zscaler split tunneling"
 
-    # Load config to remove custom and bypass routes
+    # Load config to remove Zscaler routes and direct overrides
     load_config
     load_bypass_config
     remove_custom_routes
@@ -1768,9 +1768,9 @@ show_status() {
     echo -e "  IPv4: ${ipv4_count}/${#IPV4_BROAD_ROUTES[@]}"
     echo -e "  IPv6: ${ipv6_count}/${#IPV6_BROAD_ROUTES[@]}"
 
-    # Load config to show custom routes
+    # Load config to show Zscaler routes
     load_config > /dev/null 2>&1
-    echo -e "\nCustom Routes: ${#CUSTOM_ROUTES[@]} configured"
+    echo -e "\nZscaler Routes: ${#CUSTOM_ROUTES[@]} configured"
 
     if [[ $ipv4_count -eq 0 ]] && [[ $ipv6_count -eq 0 ]]; then
         echo -e "\nSplit Tunneling: ${GREEN}Active${NC} (all broad routes removed)"
@@ -1864,7 +1864,7 @@ remove_from_config() {
     fi
 }
 
-# Add entries to bypass config file
+# Add entries to direct override config file
 add_to_bypass_config() {
     local entry="$1"
 
@@ -1884,26 +1884,26 @@ add_to_bypass_config() {
 
     # Check if already exists
     if [[ -f "$BYPASS_CONFIG_FILE" ]] && grep -Fxq "$entry" "$BYPASS_CONFIG_FILE" 2>/dev/null; then
-        log WARN "Entry already exists in bypass config: $entry"
+        log WARN "Entry already exists in direct override config: $entry"
         apply_route_now "$entry" "bypass"
         return 0
     fi
 
     if [[ -f "$DEFAULT_BYPASS_FILE" ]] && grep -Fxq "$entry" "$DEFAULT_BYPASS_FILE" 2>/dev/null; then
-        log WARN "Entry already present in default bypass config: $entry"
+        log WARN "Entry already present in default direct override config: $entry"
         apply_route_now "$entry" "bypass"
         return 0
     fi
 
-    # Add to bypass config
+    # Add to direct override config
     echo "$entry" >> "$BYPASS_CONFIG_FILE"
-    log SUCCESS "Added to bypass config: $entry"
+    log SUCCESS "Added to direct override config: $entry"
 
     apply_route_now "$entry" "bypass"
     trigger_daemon_reload
 }
 
-# Remove entries from bypass config file
+# Remove entries from direct override config file
 remove_from_bypass_config() {
     local entry="$1"
 
@@ -1921,22 +1921,22 @@ remove_from_bypass_config() {
 
     if [[ -f "$BYPASS_CONFIG_FILE" && $(wc -l < "$temp_file") -lt $(wc -l < "$BYPASS_CONFIG_FILE") ]]; then
         mv "$temp_file" "$BYPASS_CONFIG_FILE"
-        log SUCCESS "Removed from bypass config: $entry"
+        log SUCCESS "Removed from direct override config: $entry"
         remove_route_now "$entry"
         trigger_daemon_reload
     else
         rm -f "$temp_file"
         if [[ -f "$DEFAULT_BYPASS_FILE" ]] && grep -Fxq "$entry" "$DEFAULT_BYPASS_FILE" 2>/dev/null; then
-            log WARN "Entry is provided by the default bypass config: $entry"
+            log WARN "Entry is provided by the default direct override config: $entry"
         else
-            log WARN "Entry not found in user bypass config: $entry"
+            log WARN "Entry not found in user direct override config: $entry"
         fi
     fi
 }
 
-# Show bypass config
+# Show direct override config
 show_bypass_config() {
-    echo -e "${BLUE}=== Zscaler Bypass Routes Configuration ===${NC}"
+    echo -e "${BLUE}=== Direct Overrides Configuration ===${NC}"
     echo -e "Default config: $DEFAULT_BYPASS_FILE"
     echo -e "User overrides: $BYPASS_CONFIG_FILE\n"
 
@@ -1952,8 +1952,8 @@ show_bypass_config() {
     done
 
     if (( ! displayed )); then
-        echo "No bypass routes configured."
-        echo -e "\nTo add bypass routes, use:"
+        echo "No direct overrides configured."
+        echo -e "\nTo add direct overrides, use:"
         echo "  $0 --add-bypass <domain|ip|cidr>"
         return
     fi
@@ -1962,16 +1962,16 @@ show_bypass_config() {
     load_bypass_config > /dev/null 2>&1
 
     if [[ ${#BYPASS_ROUTES[@]} -gt 0 ]]; then
-        echo -e "\n${GREEN}Resolved bypass routes:${NC}"
+        echo -e "\n${GREEN}Resolved direct overrides:${NC}"
         for route in "${BYPASS_ROUTES[@]}"; do
             echo "  $route"
         done
     fi
 }
 
-# Show config
+# Show Zscaler route config
 show_config() {
-    echo -e "${BLUE}=== Zscaler Custom Routes Configuration ===${NC}"
+    echo -e "${BLUE}=== Zscaler Routes Configuration ===${NC}"
     echo -e "Default config: $DEFAULT_CONFIG_FILE"
     echo -e "User overrides: $CONFIG_FILE\n"
 
@@ -1987,7 +1987,7 @@ show_config() {
     done
 
     if (( ! displayed )); then
-        echo "No custom routes configured."
+        echo "No Zscaler routes configured."
         echo -e "\nTo add routes, use:"
         echo "  $0 --add <domain|ip|cidr>"
         return
@@ -2031,17 +2031,17 @@ Update Options:
     --version / version           Show version information and update status
     --restore / restore [BACKUP]  Restore script from most recent backup
 
-Custom Routes Options:
+Zscaler Routes Options:
     --add / add ENTRY               Add domain/IP/CIDR to route through Zscaler
     --remove / remove ENTRY         Remove domain/IP/CIDR from config
-    --show-config / show-config     Show current custom routes configuration
-    --clear-config / clear-config   Clear all custom routes
+    --show-config / show-config     Show current Zscaler routes configuration
+    --clear-config / clear-config   Clear all Zscaler routes
 
-Bypass Routes Options (for AI tools, etc.):
-    --add-bypass / add-bypass ENTRY          Add domain/IP/CIDR to bypass Zscaler completely
-    --remove-bypass / remove-bypass ENTRY    Remove domain/IP/CIDR from bypass config
-    --show-bypass / show-bypass              Show current bypass routes configuration
-    --clear-bypass / clear-bypass            Clear all bypass routes
+Direct Override Options (for AI tools, etc.):
+    --add-bypass / add-bypass ENTRY          Add domain/IP/CIDR to route directly
+    --remove-bypass / remove-bypass ENTRY    Remove domain/IP/CIDR from direct override config
+    --show-bypass / show-bypass              Show current direct override configuration
+    --clear-bypass / clear-bypass            Clear all direct overrides
 
 Autostart Options:
     --enable-autostart / enable-autostart    Install launchd job so daemon starts on boot
@@ -2067,12 +2067,12 @@ Examples:
     $0 --add 192.168.1.0/24
     $0 --add 10.0.0.5
 
-    # Add AI tools to bypass Zscaler completely
+    # Add AI tools as direct overrides
     $0 --add-bypass api.openai.com
     $0 --add-bypass claude.ai
     $0 --add-bypass api.anthropic.com
 
-    # Show custom routes configuration
+    # Show Zscaler routes configuration
     $0 --show-config
 
     # Start with custom interval and verbose output
@@ -2089,10 +2089,10 @@ Examples:
     $0 --restore
 
 Configuration File:
-    Default custom routes: $DEFAULT_CONFIG_FILE
-    User custom routes:    $CONFIG_FILE
-    Default bypass routes: $DEFAULT_BYPASS_FILE
-    User bypass routes:    $BYPASS_CONFIG_FILE
+    Default Zscaler routes: $DEFAULT_CONFIG_FILE
+    User Zscaler routes:    $CONFIG_FILE
+    Default direct overrides: $DEFAULT_BYPASS_FILE
+    User direct overrides:    $BYPASS_CONFIG_FILE
 
     Format: One entry per line (domain, IP, or CIDR)
     Comments start with #
@@ -2301,10 +2301,10 @@ main() {
             mkdir -p "$USER_CONFIG_DIR"
             if [[ -f "$BYPASS_CONFIG_FILE" ]]; then
                 : > "$BYPASS_CONFIG_FILE"
-                log SUCCESS "Bypass configuration cleared"
+                log SUCCESS "Direct override configuration cleared"
                 trigger_daemon_reload
             else
-                log INFO "No bypass configuration to clear"
+                log INFO "No direct override configuration to clear"
             fi
             ;;
         update)

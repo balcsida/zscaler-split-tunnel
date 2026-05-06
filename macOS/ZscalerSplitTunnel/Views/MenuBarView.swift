@@ -126,8 +126,8 @@ struct MenuBarView: View {
         VStack(spacing: 4) {
             if let status = appState.helperStatus {
                 HStack(spacing: 12) {
-                    RouteCounter(label: "Custom", count: status.customRouteCount, icon: "arrow.triangle.branch")
-                    RouteCounter(label: "Bypass", count: status.bypassRouteCount, icon: "arrow.uturn.right")
+                    RouteCounter(label: "Zscaler", count: status.customRouteCount, icon: "arrow.triangle.branch")
+                    RouteCounter(label: "Direct", count: status.bypassRouteCount, icon: "arrow.uturn.right")
                     broadRouteIndicator(status.broadRoutesPresent)
                 }
             }

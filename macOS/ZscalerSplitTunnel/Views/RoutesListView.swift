@@ -13,7 +13,7 @@ struct RoutesListView: View {
                 ContentUnavailableView(
                     "No Entries",
                     systemImage: configType == .routes ? "arrow.triangle.branch" : "arrow.triangle.swap",
-                    description: Text("Add entries to configure \(configType == .routes ? "custom routes" : "bypass routes").")
+                    description: Text("Add entries to configure \(configType == .routes ? "Zscaler routes" : "direct route overrides").")
                 )
             } else {
                 Table(entries, columns: {

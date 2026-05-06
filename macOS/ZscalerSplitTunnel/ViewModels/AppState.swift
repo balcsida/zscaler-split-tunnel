@@ -221,7 +221,7 @@ final class AppState {
 
             // Auto-start monitoring only when Zscaler is actually running. Otherwise the
             // poll would resurrect monitoring immediately after the user kills Zscaler,
-            // and the monitor would re-install bypass /32s through the default gateway —
+            // and the monitor would re-install direct override /32s through the default gateway —
             // undoing the RouteReset the helper just performed.
             if !status.isMonitoring && !pendingMonitorStart && status.zscalerRunning {
                 pendingMonitorStart = true

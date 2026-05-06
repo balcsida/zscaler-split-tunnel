@@ -210,7 +210,7 @@ final class MonitorLoop: @unchecked Sendable {
             // Check if bypass gateway changed (office mode transition)
             let currentBypassGateway = resolveBypassGateway()
             if currentBypassGateway != lastBypassGateway, lastBypassGateway != nil {
-                logger.info("Bypass gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing bypass routes")
+                logger.info("Direct override gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing direct overrides")
                 reloadAndApplyRoutes()
             } else {
                 _ = BroadRouteManager.removeBroadRoutes()
@@ -408,7 +408,7 @@ final class MonitorLoop: @unchecked Sendable {
         addRoutes(routes, bypass: true)
     }
 
-    /// Resolves the gateway to use for bypass routes, considering office mode.
+    /// Resolves the gateway to use for direct overrides, considering office mode.
     private func resolveBypassGateway() -> String? {
         if officeMode == .officeWifi, let wifiGW = officeDetector.wifiGateway {
             return wifiGW
@@ -420,12 +420,12 @@ final class MonitorLoop: @unchecked Sendable {
         if bypass {
             let gateway = resolveBypassGateway()
             guard let gateway else {
-                logger.error("Cannot add bypass routes: no gateway available")
+                logger.error("Cannot add direct overrides: no gateway available")
                 return
             }
 
             if officeMode == .officeWifi {
-                logger.info("Routing \(routes.count) bypass routes via WiFi gateway \(gateway)")
+                logger.info("Routing \(routes.count) direct overrides via WiFi gateway \(gateway)")
             }
 
             lastBypassGateway = gateway
@@ -440,7 +440,7 @@ final class MonitorLoop: @unchecked Sendable {
                 // leave those routes unset and cause ERR_ADDRESS_INVALID in browsers
                 // whose Happy Eyeballs logic prefers IPv6.
                 guard isIPv6 == gatewayIsIPv6 else {
-                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") bypass route \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
+                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
                 if forceReplace {
@@ -451,7 +451,7 @@ final class MonitorLoop: @unchecked Sendable {
             }
         } else {
             guard let iface = RouteEngine.detectZscalerInterface() else {
-                logger.error("Cannot add custom routes: Zscaler interface not detected")
+                logger.error("Cannot add Zscaler routes: Zscaler interface not detected")
                 return
             }
             for route in routes {

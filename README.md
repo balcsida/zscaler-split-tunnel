@@ -7,14 +7,14 @@ Includes both a **shell script daemon** and a native **macOS menu bar app** with
 ## Features
 
 - **Automatic Route Management**: Continuously removes Zscaler's broad routes that capture all internet traffic
-- **Custom Route Configuration**: Route specific domains, IPs, or CIDR ranges through Zscaler
-- **Bypass Route Configuration**: Force specific routes to skip Zscaler entirely
+- **Zscaler Route Configuration**: Route specific domains, IPs, or CIDR ranges through Zscaler
+- **Direct Override Configuration**: Force specific routes to use the direct network gateway when Zscaler has a more-specific route
 - **Automatic Config Reload**: Applies configuration changes immediately while the daemon runs on a low-frequency cadence
 - **Smart Zscaler Management**: Only starts Zscaler if not already running
 - **Domain Resolution**: Automatically resolves domains to IP addresses with caching
 - **Daemon Mode**: Runs in the background to maintain split tunnel configuration
 - **Autostart Support**: Optional launchd job keeps the daemon running after reboots
-- **Office WiFi Routing**: When connected to a corporate switch (detected via CDP/LLDP), routes bypass traffic through a guest WiFi interface
+- **Office WiFi Routing**: When connected to a corporate switch (detected via CDP/LLDP), routes direct override traffic through a guest WiFi interface
 - **Native macOS App**: SwiftUI menu bar app with real-time status, route counters, and a privileged helper daemon
 
 ## Quick Install
@@ -66,7 +66,7 @@ zscaler-split-tunnel --remove example.com
 # Show current configuration
 zscaler-split-tunnel --show-config
 
-# Clear all custom routes
+# Clear all Zscaler routes
 zscaler-split-tunnel --clear-config
 ```
 
@@ -101,8 +101,8 @@ sudo zscaler-split-tunnel --disable-autostart
 
 Defaults are versioned in this repository so the whole team shares the same baseline:
 
-- `config/zscaler-split-tunnel.conf` – routes forced through Zscaler
-- `config/zscaler-bypass.conf` – routes that should skip Zscaler entirely
+- `config/zscaler-split-tunnel.conf` – Zscaler routes forced through the tunnel
+- `config/zscaler-bypass.conf` – direct overrides that should skip Zscaler
 
 User-specific overrides live under `~/.config/zscaler-split-tunnel/`:
 
@@ -124,7 +124,7 @@ Changes are written to disk immediately and the running daemon reloads the new c
 
 ### Office WiFi Routing
 
-When your Mac is connected to Ethernet at the office (detected via CDP/LLDP discovery packets from corporate switches) and a guest WiFi network is available, bypass routes can be automatically routed through the WiFi gateway instead of the default Ethernet gateway.
+When your Mac is connected to Ethernet at the office (detected via CDP/LLDP discovery packets from corporate switches) and a guest WiFi network is available, direct overrides can be automatically routed through the WiFi gateway instead of the default Ethernet gateway.
 
 Create `~/.config/zscaler-split-tunnel/office-mode.json`:
 
@@ -146,7 +146,7 @@ The `macOS/` directory contains a native SwiftUI menu bar application with:
 - Start/kill Zscaler
 - DNS cache flushing
 - Office mode status display
-- Settings window for route and bypass configuration
+- Settings window for Zscaler routes and direct overrides
 
 Build with Xcode 16+ or [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
@@ -159,7 +159,7 @@ open ZscalerSplitTunnel.xcodeproj
 ## How It Works
 
 1. **Broad Route Removal**: Removes Zscaler's broad routes (like 1.0.0.0/8, 2.0.0.0/7, etc.) that capture most internet traffic
-2. **Custom Routes**: Adds specific routes for your configured domains/IPs through the Zscaler interface (typically utun8)
+2. **Zscaler Routes**: Adds specific routes for your configured domains/IPs through the Zscaler interface (typically utun8)
 3. **Continuous Monitoring**: Runs as a daemon on a low-frequency (5 minute) interval to keep routes tidy without burning CPU
 4. **Automatic Updates**: Signals the daemon to reload instantly whenever configuration files change
 
