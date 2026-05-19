@@ -445,7 +445,7 @@ final class MonitorLoop: @unchecked Sendable {
                 }
                 if forceReplace {
                     _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                } else if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                } else if !RouteEngine.routeExists(destination: route, gateway: gateway, isIPv6: isIPv6) {
                     _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
                 }
             }

@@ -12,11 +12,16 @@ final class DNSResolver: Sendable {
 
     func resolve(_ domain: String) -> [String] {
         let cacheKey = "domain:\(domain)"
+        let negativeCacheKey = "negative-domain:\(domain)"
         let now = Int(Date().timeIntervalSince1970)
 
         // Check cache
         if let cached = readCacheEntry(key: cacheKey, maxAge: AppConstants.cacheExpireSeconds, now: now) {
             return cached
+        }
+        if readCacheEntry(key: negativeCacheKey, maxAge: AppConstants.negativeCacheExpireSeconds, now: now) != nil {
+            Self.logger.debug("Skipping recently failed domain resolution: \(domain)")
+            return []
         }
 
         // Resolve A records
@@ -44,6 +49,7 @@ final class DNSResolver: Sendable {
 
         guard !ips.isEmpty else {
             Self.logger.warning("Failed to resolve domain: \(domain)")
+            writeCacheEntry(key: negativeCacheKey, timestamp: now, values: ["-"])
             return []
         }
 

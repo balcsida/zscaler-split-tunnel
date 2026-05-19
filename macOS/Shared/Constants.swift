@@ -32,5 +32,6 @@ enum AppConstants {
     static let defaultMonitorInterval: Int = 30
     static let statusPollInterval: TimeInterval = 5
     static let cacheExpireSeconds: Int = 3600
+    static let negativeCacheExpireSeconds: Int = 60
     static let remoteCacheExpireSeconds: Int = 3600
 }
