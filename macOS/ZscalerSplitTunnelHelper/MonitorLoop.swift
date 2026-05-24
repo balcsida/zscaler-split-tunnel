@@ -117,6 +117,8 @@ final class MonitorLoop: @unchecked Sendable {
         // Run all state-mutating work on the monitor queue to avoid data races
         queue.async { [weak self] in
             guard let self else { return }
+            self.lastDefaultRouteRepairAttempt = nil
+            self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
@@ -148,6 +150,7 @@ final class MonitorLoop: @unchecked Sendable {
         queue.sync { [weak self] in
             guard let self else { return }
             self.isRunning = false
+            self.lastDefaultRouteRepairAttempt = nil
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
