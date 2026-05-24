@@ -10,7 +10,7 @@ struct AddEntrySheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Add \(configType == .routes ? "Route" : "Bypass") Entry")
+            Text("Add \(configType == .routes ? "Zscaler Route" : "Direct Override") Entry")
                 .font(.headline)
 
             TextField("e.g. 10.0.0.0/8, example.com, https://...", text: $entryText)

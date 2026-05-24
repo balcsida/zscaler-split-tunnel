@@ -22,9 +22,11 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
+    private var lastDefaultRouteRepairAttempt: Date?
 
     private static let followUpCount: Int = 4
     private static let followUpInterval: TimeInterval = 6
+    private static let defaultRouteRepairCooldown: TimeInterval = 30
     private var pendingFollowUpSweeps: Int = 0
 
     private(set) var customRouteCount: Int = 0
@@ -115,6 +117,8 @@ final class MonitorLoop: @unchecked Sendable {
         // Run all state-mutating work on the monitor queue to avoid data races
         queue.async { [weak self] in
             guard let self else { return }
+            self.lastDefaultRouteRepairAttempt = nil
+            self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
@@ -146,6 +150,7 @@ final class MonitorLoop: @unchecked Sendable {
         queue.sync { [weak self] in
             guard let self else { return }
             self.isRunning = false
+            self.lastDefaultRouteRepairAttempt = nil
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
@@ -183,6 +188,8 @@ final class MonitorLoop: @unchecked Sendable {
         }
         lastNetworkSignature = currentSignature
 
+        repairDefaultRouteIfNeeded()
+
         // Check for new/removed Ethernet interfaces (e.g. dock connected/disconnected)
         let currentInterfaces = Set(PacketCapture.listEthernetInterfaces())
         if currentInterfaces != Set(allEthernetInterfaces) {
@@ -210,7 +217,7 @@ final class MonitorLoop: @unchecked Sendable {
             // Check if bypass gateway changed (office mode transition)
             let currentBypassGateway = resolveBypassGateway()
             if currentBypassGateway != lastBypassGateway, lastBypassGateway != nil {
-                logger.info("Bypass gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing bypass routes")
+                logger.info("Direct override gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing direct overrides")
                 reloadAndApplyRoutes()
             } else {
                 _ = BroadRouteManager.removeBroadRoutes()
@@ -270,6 +277,7 @@ final class MonitorLoop: @unchecked Sendable {
         // to those destinations. We delete them here so they are re-cloned
         // with the correct source address when routes are reinstalled below.
         RouteEngine.flushStaleHostRoutes()
+        repairDefaultRouteIfNeeded(force: true)
 
         reloadAndApplyRoutes(forceReplace: true)
         lastRefresh = Date()
@@ -371,6 +379,38 @@ final class MonitorLoop: @unchecked Sendable {
 
     // MARK: - Routes
 
+    private func repairDefaultRouteIfNeeded(force: Bool = false) {
+        guard !DefaultRouteRepair.isUsableIPv4Gateway(RouteEngine.getDefaultGateway()) else {
+            lastDefaultRouteRepairAttempt = nil
+            return
+        }
+
+        let now = Date()
+        if !force,
+           let last = lastDefaultRouteRepairAttempt,
+           now.timeIntervalSince(last) < Self.defaultRouteRepairCooldown {
+            logger.debug("Skipping default-route repair attempt due to cooldown")
+            return
+        }
+        lastDefaultRouteRepairAttempt = now
+
+        let result = DefaultRouteRepair.restoreIfMissing()
+        switch result {
+        case .defaultPresent:
+            logger.debug("Default route is already present")
+        case .noActiveServices:
+            logger.warning("Cannot repair missing IPv4 default route: no active network services")
+        case .repairedByRouteChange(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via route change using \(service, privacy: .public) gateway \(gateway, privacy: .public)")
+        case .repairedByRouteAdd(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via route add using \(service, privacy: .public) gateway \(gateway, privacy: .public)")
+        case .repairedByDHCP(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via DHCP renew on \(service, privacy: .public), gateway \(gateway, privacy: .public)")
+        case .failed(let errors):
+            logger.error("Failed to repair missing IPv4 default route: \(errors.joined(separator: "; "), privacy: .public)")
+        }
+    }
+
     private func reloadAndApplyRoutes(forceReplace: Bool = false) {
         _ = BroadRouteManager.removeBroadRoutes()
 
@@ -408,7 +448,7 @@ final class MonitorLoop: @unchecked Sendable {
         addRoutes(routes, bypass: true)
     }
 
-    /// Resolves the gateway to use for bypass routes, considering office mode.
+    /// Resolves the gateway to use for direct overrides, considering office mode.
     private func resolveBypassGateway() -> String? {
         if officeMode == .officeWifi, let wifiGW = officeDetector.wifiGateway {
             return wifiGW
@@ -420,12 +460,12 @@ final class MonitorLoop: @unchecked Sendable {
         if bypass {
             let gateway = resolveBypassGateway()
             guard let gateway else {
-                logger.error("Cannot add bypass routes: no gateway available")
+                logger.error("Cannot add direct overrides: no gateway available")
                 return
             }
 
             if officeMode == .officeWifi {
-                logger.info("Routing \(routes.count) bypass routes via WiFi gateway \(gateway)")
+                logger.info("Routing \(routes.count) direct overrides via WiFi gateway \(gateway)")
             }
 
             lastBypassGateway = gateway
@@ -440,25 +480,23 @@ final class MonitorLoop: @unchecked Sendable {
                 // leave those routes unset and cause ERR_ADDRESS_INVALID in browsers
                 // whose Happy Eyeballs logic prefers IPv6.
                 guard isIPv6 == gatewayIsIPv6 else {
-                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") bypass route \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
+                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
                 if forceReplace {
                     _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                } else if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
+                } else if !RouteEngine.routeExists(destination: route, gateway: gateway, isIPv6: isIPv6) {
                     _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
                 }
             }
         } else {
             guard let iface = RouteEngine.detectZscalerInterface() else {
-                logger.error("Cannot add custom routes: Zscaler interface not detected")
+                logger.error("Cannot add Zscaler routes: Zscaler interface not detected")
                 return
             }
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)
-                if !RouteEngine.routeExists(destination: route, isIPv6: isIPv6) {
-                    _ = RouteEngine.addRoute(destination: route, interface: iface, isIPv6: isIPv6)
-                }
+                _ = RouteEngine.replaceRoute(destination: route, interface: iface, isIPv6: isIPv6)
             }
         }
     }

@@ -35,11 +35,11 @@ struct SettingsView: View {
 
             ConfigEditorView(configType: .routes)
                 .environment(appState)
-                .tabItem { Label { Text("Custom Routes") } icon: { fixedTabIcon("arrow.triangle.branch") } }
+                .tabItem { Label { Text("Zscaler Routes") } icon: { fixedTabIcon("arrow.triangle.branch") } }
 
             ConfigEditorView(configType: .bypass)
                 .environment(appState)
-                .tabItem { Label { Text("Bypass Routes") } icon: { fixedTabIcon("arrow.triangle.swap") } }
+                .tabItem { Label { Text("Direct Overrides") } icon: { fixedTabIcon("arrow.triangle.swap") } }
 
             NetworkDeviceTab()
                 .environment(appState)

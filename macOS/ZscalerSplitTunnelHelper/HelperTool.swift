@@ -36,7 +36,7 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     func addBypassRoute(_ route: String, gateway: String, isIPv6: Bool,
                         reply: @escaping (Bool, String?) -> Void) {
         let success = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-        reply(success, success ? nil : "Failed to add bypass route \(route)")
+        reply(success, success ? nil : "Failed to add direct override \(route)")
     }
 
     func deleteRoute(_ route: String, isIPv6: Bool,
@@ -72,8 +72,8 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func killZscaler(consoleUser: String, reply: @escaping (Bool, String?) -> Void) {
-        // Stop the monitor first so it can't re-install bypass /32s or custom
-        // routes between the pkill and the RouteReset. Then kill Zscaler, then
+        // Stop the monitor first so it can't re-install direct override /32s
+        // or Zscaler routes between the pkill and the RouteReset. Then kill Zscaler, then
         // run RouteReset to clear the stale utun-scoped defaults, flush leftover
         // /32s pinned to the previous gateway, and bounce active en* services so
         // IPv4 default + DNS come back without Zscaler's 100.64.0.1 override.

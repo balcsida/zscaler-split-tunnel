@@ -32,6 +32,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app
         INFOPLIST_FILE: ZscalerSplitTunnel/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: ZscalerSplitTunnel/Resources/ZscalerSplitTunnel.entitlements
+        CODE_SIGN_IDENTITY: Apple Development
+        DEVELOPMENT_TEAM: 8A7FU99APT
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         COMBINE_HIDPI_IMAGES: "YES"
         ENABLE_HARDENED_RUNTIME: "YES"
@@ -64,6 +66,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper
         INFOPLIST_FILE: ZscalerSplitTunnelHelper/Info.plist
+        CODE_SIGN_IDENTITY: Apple Development
+        DEVELOPMENT_TEAM: 8A7FU99APT
         PRODUCT_NAME: com.zscaler-split-tunnel.helper
         SKIP_INSTALL: "YES"
         ENABLE_HARDENED_RUNTIME: "YES"
@@ -72,3 +76,32 @@ targets:
         OTHER_CODE_SIGN_FLAGS: "-i com.zscaler-split-tunnel.helper"
         SWIFT_OBJC_BRIDGING_HEADER: ZscalerSplitTunnelHelper/BridgingHeader.h
         OTHER_LDFLAGS: ["-sectcreate", "__TEXT", "__launchd_plist", "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist", "-lpcap"]
+
+  ZscalerSplitTunnelHelperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnelHelperTests
+      - path: ZscalerSplitTunnelHelper/DefaultRouteRepair.swift
+      - path: ZscalerSplitTunnelHelper/RouteEngine.swift
+      - path: ZscalerSplitTunnelHelper/RouteReset.swift
+      - path: ZscalerSplitTunnelHelper/ShellRunner.swift
+      - path: Shared/Constants.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
+
+  ZscalerSplitTunnelTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnelTests
+      - path: ZscalerSplitTunnel/Services/HelperInstaller.swift
+      - path: Shared/Constants.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"

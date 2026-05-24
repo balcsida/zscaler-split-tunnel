@@ -43,24 +43,24 @@ final class ConfigService {
     }
 
     func addEntry(_ entry: ConfigEntry, to config: ConfigType) throws {
-        switch config {
-        case .routes:
-            userRoutes.append(entry)
-            try userRoutes.write(to: ConfigPaths.routesConfig)
-        case .bypass:
-            userBypass.append(entry)
-            try userBypass.write(to: ConfigPaths.bypassConfig)
-        }
+        try mutate(config) { $0.append(entry) }
     }
 
     func removeEntry(_ entry: ConfigEntry, from config: ConfigType) throws {
+        try mutate(config) { $0.remove(entry) }
+    }
+
+    /// Re-reads the file from disk, applies `change`, then writes back.
+    /// Avoids clobbering external edits (or entries added in another window)
+    /// that the in-memory snapshot hasn't seen.
+    private func mutate(_ config: ConfigType, _ change: (inout ConfigFile) -> Void) throws {
+        let path = config == .routes ? ConfigPaths.routesConfig : ConfigPaths.bypassConfig
+        var current = (try? ConfigFile.parse(contentsOf: path)) ?? ConfigFile()
+        change(&current)
+        try current.write(to: path)
         switch config {
-        case .routes:
-            userRoutes.remove(entry)
-            try userRoutes.write(to: ConfigPaths.routesConfig)
-        case .bypass:
-            userBypass.remove(entry)
-            try userBypass.write(to: ConfigPaths.bypassConfig)
+        case .routes: userRoutes = current
+        case .bypass: userBypass = current
         }
     }
 
@@ -117,27 +117,41 @@ final class ConfigService {
         ]
 
         for fileURL in filesToWatch {
-            let fd = open(fileURL.path, O_EVTONLY)
-            guard fd >= 0 else { continue }
-            watchDescriptors.append(fd)
-
-            let source = DispatchSource.makeFileSystemObjectSource(
-                fileDescriptor: fd,
-                eventMask: .write,
-                queue: .main
-            )
-
-            source.setEventHandler { [weak self] in
-                self?.load()
-            }
-
-            source.setCancelHandler {
-                close(fd)
-            }
-
-            source.resume()
-            watchSources.append(source)
+            watchFile(fileURL)
         }
+    }
+
+    /// Atomic writes (`String.write(to:atomically:)` / editors using write-temp +
+    /// rename) unlink the original inode, so a source bound to that fd stops
+    /// firing on subsequent edits. We subscribe to `.delete`/`.rename` as well
+    /// and re-establish the watcher whenever the file is replaced.
+    private func watchFile(_ fileURL: URL) {
+        let fd = open(fileURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        watchDescriptors.append(fd)
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .delete, .rename],
+            queue: .main
+        )
+
+        source.setEventHandler { [weak self, weak source] in
+            guard let self, let source else { return }
+            let mask = source.data
+            self.load()
+            if mask.contains(.delete) || mask.contains(.rename) {
+                source.cancel()
+                self.watchFile(fileURL)
+            }
+        }
+
+        source.setCancelHandler {
+            close(fd)
+        }
+
+        source.resume()
+        watchSources.append(source)
     }
 
     func stopWatching() {

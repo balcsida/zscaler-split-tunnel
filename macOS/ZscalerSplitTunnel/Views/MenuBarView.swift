@@ -99,14 +99,7 @@ struct MenuBarView: View {
                                 .foregroundStyle(.secondary)))
                 }
             } else if let error = appState.errorMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
-                    Text(error)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
+                ErrorMessageView(message: error)
 
                 if !appState.isHelperInstalled {
                     MenuButton(title: "Install Helper", icon: "arrow.down.circle") {
@@ -133,8 +126,8 @@ struct MenuBarView: View {
         VStack(spacing: 4) {
             if let status = appState.helperStatus {
                 HStack(spacing: 12) {
-                    RouteCounter(label: "Custom", count: status.customRouteCount, icon: "arrow.triangle.branch")
-                    RouteCounter(label: "Bypass", count: status.bypassRouteCount, icon: "arrow.uturn.right")
+                    RouteCounter(label: "Zscaler", count: status.customRouteCount, icon: "arrow.triangle.branch")
+                    RouteCounter(label: "Direct", count: status.bypassRouteCount, icon: "arrow.uturn.right")
                     broadRouteIndicator(status.broadRoutesPresent)
                 }
             }
@@ -306,6 +299,28 @@ private struct StatusRow: View {
                     .font(.callout.weight(.medium))
                     .foregroundStyle(valueColor)
             }
+        }
+    }
+}
+
+private struct ErrorMessageView: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.callout)
+                .foregroundStyle(.yellow)
+                .frame(width: 16, alignment: .center)
+                .padding(.top, 1)
+
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(5)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

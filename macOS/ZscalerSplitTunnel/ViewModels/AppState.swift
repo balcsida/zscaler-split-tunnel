@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Security
 import ServiceManagement
 
 @Observable
@@ -27,6 +28,10 @@ final class AppState {
         // the first successful XPC round-trip.
         let svcStatus = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist").status
         isHelperInstalled = svcStatus == .enabled || svcStatus == .requiresApproval
+        // Populate config from disk and watch for external edits so the in-memory
+        // snapshot stays current without depending on the Settings tab being opened.
+        configService.load()
+        configService.startWatching()
         startStatusPolling()
     }
 
@@ -36,22 +41,24 @@ final class AppState {
         errorMessage = nil
 
         Task {
-            let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
+            let service = SMAppServiceHelperRegistration()
+            let installer = HelperInstaller(service: service)
             do {
-                // Unregister whenever BTM has any record of the helper, not just
-                // when it's `.enabled`. After a rebuild, the binary's SHA256 no
-                // longer matches what BTM cached; if we skip unregister and only
-                // call register() on a `.requiresApproval` (toggled-off) entry,
-                // BTM keeps the stale SHA and launchd refuses to spawn the new
-                // binary with EX_CONFIG. Forcing unregister + sleep + register
-                // makes BTM record the new SHA.
-                if service.status == .enabled || service.status == .requiresApproval {
-                    try? await service.unregister()
-                    await helperConnection.resetConnection()
-                    // Wait for launchd to fully tear down and BTM to drop the entry.
-                    try await Task.sleep(for: .seconds(3))
+                if let signingProblem = helperLaunchSigningProblem() {
+                    errorMessage = signingProblem
+                    isHelperInstalled = service.status.isInstalled
+                    isLoading = false
+                    return
                 }
-                try service.register()
+
+                // Unregister whenever BTM has any record of the helper, then wait
+                // until ServiceManagement sees the old record disappear. After a
+                // rebuild, the binary's SHA256 no longer matches what BTM cached;
+                // registering too early can keep launchd pinned to the stale helper.
+                if service.status.isRegistered {
+                    await helperConnection.resetConnection()
+                }
+                try await installer.reinstall()
                 // Drop any existing XPC connection so the next poll opens a fresh one
                 // against the daemon launchd is about to bring up.
                 await helperConnection.resetConnection()
@@ -70,7 +77,7 @@ final class AppState {
                 }
             } catch {
                 errorMessage = "Helper install failed: \(error.localizedDescription)"
-                isHelperInstalled = service.status == .enabled
+                isHelperInstalled = service.status.isInstalled
             }
             isLoading = false
         }
@@ -209,7 +216,7 @@ final class AppState {
 
             // Auto-start monitoring only when Zscaler is actually running. Otherwise the
             // poll would resurrect monitoring immediately after the user kills Zscaler,
-            // and the monitor would re-install bypass /32s through the default gateway —
+            // and the monitor would re-install direct override /32s through the default gateway —
             // undoing the RouteReset the helper just performed.
             if !status.isMonitoring && !pendingMonitorStart && status.zscalerRunning {
                 pendingMonitorStart = true
@@ -235,10 +242,66 @@ final class AppState {
                 errorMessage = "Approve helper in System Settings → General → Login Items"
             case .enabled:
                 isHelperInstalled = true
-                errorMessage = inGrace ? nil : "Helper not responding"
+                errorMessage = inGrace ? nil : (helperLaunchSigningProblem() ?? "Helper not responding")
             @unknown default:
                 break
             }
         }
+    }
+
+    private func helperLaunchSigningProblem() -> String? {
+        let helperURL = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/LaunchServices")
+            .appendingPathComponent(AppConstants.helperBundleID)
+
+        guard FileManager.default.isExecutableFile(atPath: helperURL.path) else {
+            return "Helper executable is missing from the app bundle. Rebuild the app and reinstall the helper."
+        }
+
+        if let appIssue = codeSigningIssue(for: Bundle.main.bundleURL, componentName: "app") {
+            return helperLaunchError(for: appIssue)
+        }
+
+        if let helperIssue = codeSigningIssue(for: helperURL, componentName: "helper") {
+            return helperLaunchError(for: helperIssue)
+        }
+
+        return nil
+    }
+
+    private func helperLaunchError(for issue: String) -> String {
+        "Helper cannot launch because the \(issue). Build the app with a valid Apple Development or Developer ID certificate, then reinstall the helper."
+    }
+
+    private func codeSigningIssue(for url: URL, componentName: String) -> String? {
+        var staticCode: SecStaticCode?
+        let createStatus = SecStaticCodeCreateWithPath(url as CFURL, SecCSFlags(), &staticCode)
+        guard createStatus == errSecSuccess, let staticCode else {
+            return "\(componentName) code signature cannot be read (\(securityErrorMessage(createStatus)))"
+        }
+
+        var signingInfo: CFDictionary?
+        let infoStatus = SecCodeCopySigningInformation(
+            staticCode,
+            SecCSFlags(rawValue: kSecCSSigningInformation),
+            &signingInfo
+        )
+        if infoStatus == errSecSuccess,
+           let info = signingInfo as? [String: Any],
+           let flags = (info[kSecCodeInfoFlags as String] as? NSNumber)?.uint32Value,
+           flags & 0x0002 != 0 {
+            return "\(componentName) is signed to run locally"
+        }
+
+        let validityStatus = SecStaticCodeCheckValidity(staticCode, SecCSFlags(), nil)
+        guard validityStatus == errSecSuccess else {
+            return "\(componentName) code signature is invalid (\(securityErrorMessage(validityStatus)))"
+        }
+
+        return nil
+    }
+
+    private func securityErrorMessage(_ status: OSStatus) -> String {
+        SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
     }
 }

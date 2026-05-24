@@ -476,7 +476,7 @@
       </div>
       <div class="feature-card">
         <span class="icon">&#x1F3AF;</span>
-        <h3>Custom Route Configuration</h3>
+        <h3>Zscaler Route Configuration</h3>
         <p>Route specific domains, IPs, or CIDR ranges through Zscaler while the rest goes direct.</p>
       </div>
       <div class="feature-card">
@@ -575,7 +575,7 @@
 <span class="code-comment"># Show current config</span>
 <span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--show-config</span>
 
-<span class="code-comment"># Clear all custom routes</span>
+<span class="code-comment"># Clear all Zscaler routes</span>
 <span class="code-cmd">zscaler-split-tunnel</span> <span class="code-flag">--clear-config</span></code></pre>
       </div>
       <div class="usage-card">
@@ -612,7 +612,7 @@
       </div>
       <div class="step">
         <span class="step-number">2</span>
-        <h3>Custom Routes</h3>
+        <h3>Zscaler Routes</h3>
         <p>Adds specific routes for your configured domains and IPs through the Zscaler tunnel interface.</p>
       </div>
       <div class="step">
@@ -645,19 +645,19 @@
         <tbody>
           <tr>
             <td><code>config/zscaler-split-tunnel.conf</code></td>
-            <td>Default routes forced through Zscaler</td>
+            <td>Default Zscaler routes forced through the tunnel</td>
           </tr>
           <tr>
             <td><code>config/zscaler-bypass.conf</code></td>
-            <td>Default routes that skip Zscaler</td>
+            <td>Default direct overrides that skip Zscaler</td>
           </tr>
           <tr>
             <td><code>~/.config/.../routes.conf</code></td>
-            <td>User-specific route overrides</td>
+            <td>User-specific Zscaler route overrides</td>
           </tr>
           <tr>
             <td><code>~/.config/.../bypass.conf</code></td>
-            <td>User-specific bypass overrides</td>
+            <td>User-specific direct overrides</td>
           </tr>
         </tbody>
       </table>
