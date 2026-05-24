@@ -1,6 +1,5 @@
 import XCTest
 
-@MainActor
 final class HelperInstallerTests: XCTestCase {
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
         let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered])
@@ -10,8 +9,8 @@ final class HelperInstallerTests: XCTestCase {
             pollInterval: .milliseconds(250),
             maxUnregisterWait: .seconds(2),
             sleep: { duration in
-                await service.recordSleep()
-                await sleeps.append(duration)
+                service.recordSleep()
+                sleeps.append(duration)
             }
         )
 
@@ -27,7 +26,7 @@ final class HelperInstallerTests: XCTestCase {
             service: service,
             pollInterval: .milliseconds(250),
             maxUnregisterWait: .milliseconds(500),
-            sleep: { _ in await service.recordSleep() }
+            sleep: { _ in service.recordSleep() }
         )
 
         do {
@@ -50,7 +49,6 @@ final class HelperInstallerTests: XCTestCase {
     }
 }
 
-@MainActor
 private final class SleepRecorder: @unchecked Sendable {
     private(set) var values: [Duration] = []
 
@@ -59,8 +57,7 @@ private final class SleepRecorder: @unchecked Sendable {
     }
 }
 
-@MainActor
-private final class FakeHelperService: HelperServiceRegistering {
+private final class FakeHelperService: HelperServiceRegistering, @unchecked Sendable {
     enum Event: Equatable {
         case status
         case unregister

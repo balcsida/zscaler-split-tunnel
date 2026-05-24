@@ -43,7 +43,6 @@ enum HelperInstallerError: LocalizedError, Equatable {
     }
 }
 
-@MainActor
 protocol HelperServiceRegistering: AnyObject, Sendable {
     var status: HelperServiceStatus { get }
     func register() throws
@@ -75,8 +74,7 @@ final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked
     }
 }
 
-@MainActor
-struct HelperInstaller {
+struct HelperInstaller: Sendable {
     private let service: any HelperServiceRegistering
     private let pollInterval: Duration
     private let maxUnregisterWait: Duration
