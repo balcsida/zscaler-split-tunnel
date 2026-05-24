@@ -213,10 +213,10 @@ enum RouteReset {
 
     /// Parses `networksetup -listnetworkserviceorder` and returns enabled
     /// services whose device is an `en*` interface currently reporting
-    /// `status: active`. We restrict to `en*` to avoid bouncing virtual
-    /// services (iPhone USB tether, Thunderbolt Bridge, etc.) that could
-    /// surprise the user.
-    private static func activeNetworkServices() -> [ActiveService] {
+    /// `status: active`. We restrict to `en*` to skip bridge/tunnel services;
+    /// iPhone USB tethering also appears as `en*` and is intentionally eligible
+    /// because it can be the active default uplink.
+    static func activeNetworkServices() -> [ActiveService] {
         let order = ShellRunner.runCapturingStderr("/usr/sbin/networksetup",
             arguments: ["-listnetworkserviceorder"])
         guard order.exitCode == 0 else {

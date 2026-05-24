@@ -76,3 +76,19 @@ targets:
         OTHER_CODE_SIGN_FLAGS: "-i com.zscaler-split-tunnel.helper"
         SWIFT_OBJC_BRIDGING_HEADER: ZscalerSplitTunnelHelper/BridgingHeader.h
         OTHER_LDFLAGS: ["-sectcreate", "__TEXT", "__launchd_plist", "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist", "-lpcap"]
+
+  ZscalerSplitTunnelHelperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnelHelperTests
+      - path: ZscalerSplitTunnelHelper/DefaultRouteRepair.swift
+      - path: ZscalerSplitTunnelHelper/RouteEngine.swift
+      - path: ZscalerSplitTunnelHelper/RouteReset.swift
+      - path: ZscalerSplitTunnelHelper/ShellRunner.swift
+      - path: Shared/Constants.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"

@@ -22,9 +22,11 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
+    private var lastDefaultRouteRepairAttempt: Date?
 
     private static let followUpCount: Int = 4
     private static let followUpInterval: TimeInterval = 6
+    private static let defaultRouteRepairCooldown: TimeInterval = 30
     private var pendingFollowUpSweeps: Int = 0
 
     private(set) var customRouteCount: Int = 0
@@ -183,6 +185,8 @@ final class MonitorLoop: @unchecked Sendable {
         }
         lastNetworkSignature = currentSignature
 
+        repairDefaultRouteIfNeeded()
+
         // Check for new/removed Ethernet interfaces (e.g. dock connected/disconnected)
         let currentInterfaces = Set(PacketCapture.listEthernetInterfaces())
         if currentInterfaces != Set(allEthernetInterfaces) {
@@ -270,6 +274,7 @@ final class MonitorLoop: @unchecked Sendable {
         // to those destinations. We delete them here so they are re-cloned
         // with the correct source address when routes are reinstalled below.
         RouteEngine.flushStaleHostRoutes()
+        repairDefaultRouteIfNeeded(force: true)
 
         reloadAndApplyRoutes(forceReplace: true)
         lastRefresh = Date()
@@ -370,6 +375,38 @@ final class MonitorLoop: @unchecked Sendable {
     }
 
     // MARK: - Routes
+
+    private func repairDefaultRouteIfNeeded(force: Bool = false) {
+        guard !DefaultRouteRepair.isUsableIPv4Gateway(RouteEngine.getDefaultGateway()) else {
+            lastDefaultRouteRepairAttempt = nil
+            return
+        }
+
+        let now = Date()
+        if !force,
+           let last = lastDefaultRouteRepairAttempt,
+           now.timeIntervalSince(last) < Self.defaultRouteRepairCooldown {
+            logger.debug("Skipping default-route repair attempt due to cooldown")
+            return
+        }
+        lastDefaultRouteRepairAttempt = now
+
+        let result = DefaultRouteRepair.restoreIfMissing()
+        switch result {
+        case .defaultPresent:
+            logger.debug("Default route is already present")
+        case .noActiveServices:
+            logger.warning("Cannot repair missing IPv4 default route: no active network services")
+        case .repairedByRouteChange(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via route change using \(service, privacy: .public) gateway \(gateway, privacy: .public)")
+        case .repairedByRouteAdd(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via route add using \(service, privacy: .public) gateway \(gateway, privacy: .public)")
+        case .repairedByDHCP(let service, let gateway):
+            logger.info("Repaired missing IPv4 default route via DHCP renew on \(service, privacy: .public), gateway \(gateway, privacy: .public)")
+        case .failed(let errors):
+            logger.error("Failed to repair missing IPv4 default route: \(errors.joined(separator: "; "), privacy: .public)")
+        }
+    }
 
     private func reloadAndApplyRoutes(forceReplace: Bool = false) {
         _ = BroadRouteManager.removeBroadRoutes()
