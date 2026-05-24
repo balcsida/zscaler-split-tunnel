@@ -51,22 +51,27 @@ protocol HelperServiceRegistering: AnyObject, Sendable {
 }
 
 final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked Sendable {
-    private let service: SMAppService
+    private let plistName: String
 
     init(plistName: String = "\(AppConstants.helperBundleID).plist") {
-        service = SMAppService.daemon(plistName: plistName)
+        self.plistName = plistName
     }
 
     var status: HelperServiceStatus {
-        HelperServiceStatus(service.status)
+        HelperServiceStatus(makeService().status)
     }
 
     func register() throws {
-        try service.register()
+        try makeService().register()
     }
 
     func unregister() async throws {
+        let service = makeService()
         try await service.unregister()
+    }
+
+    private func makeService() -> SMAppService {
+        SMAppService.daemon(plistName: plistName)
     }
 }
 
