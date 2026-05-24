@@ -41,29 +41,24 @@ final class AppState {
         errorMessage = nil
 
         Task {
-            let service = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist")
+            let service = SMAppServiceHelperRegistration()
+            let installer = HelperInstaller(service: service)
             do {
                 if let signingProblem = helperLaunchSigningProblem() {
                     errorMessage = signingProblem
-                    isHelperInstalled = service.status == .enabled
+                    isHelperInstalled = service.status.isInstalled
                     isLoading = false
                     return
                 }
 
-                // Unregister whenever BTM has any record of the helper, not just
-                // when it's `.enabled`. After a rebuild, the binary's SHA256 no
-                // longer matches what BTM cached; if we skip unregister and only
-                // call register() on a `.requiresApproval` (toggled-off) entry,
-                // BTM keeps the stale SHA and launchd refuses to spawn the new
-                // binary with EX_CONFIG. Forcing unregister + sleep + register
-                // makes BTM record the new SHA.
-                if service.status == .enabled || service.status == .requiresApproval {
-                    try? await service.unregister()
+                // Unregister whenever BTM has any record of the helper, then wait
+                // until ServiceManagement sees the old record disappear. After a
+                // rebuild, the binary's SHA256 no longer matches what BTM cached;
+                // registering too early can keep launchd pinned to the stale helper.
+                if service.status.isRegistered {
                     await helperConnection.resetConnection()
-                    // Wait for launchd to fully tear down and BTM to drop the entry.
-                    try await Task.sleep(for: .seconds(3))
                 }
-                try service.register()
+                try await installer.reinstall()
                 // Drop any existing XPC connection so the next poll opens a fresh one
                 // against the daemon launchd is about to bring up.
                 await helperConnection.resetConnection()
@@ -82,7 +77,7 @@ final class AppState {
                 }
             } catch {
                 errorMessage = "Helper install failed: \(error.localizedDescription)"
-                isHelperInstalled = service.status == .enabled
+                isHelperInstalled = service.status.isInstalled
             }
             isLoading = false
         }

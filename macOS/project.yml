@@ -92,3 +92,16 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper.tests
         GENERATE_INFOPLIST_FILE: "YES"
         CODE_SIGNING_ALLOWED: "NO"
+
+  ZscalerSplitTunnelTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ZscalerSplitTunnelTests
+      - path: ZscalerSplitTunnel/Services/HelperInstaller.swift
+      - path: Shared/Constants.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
