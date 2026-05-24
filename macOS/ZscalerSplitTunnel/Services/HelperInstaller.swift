@@ -50,7 +50,6 @@ protocol HelperServiceRegistering: AnyObject, Sendable {
     func unregister() async throws
 }
 
-@MainActor
 final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked Sendable {
     private let service: SMAppService
 
