@@ -43,11 +43,10 @@ enum HelperInstallerError: LocalizedError, Equatable {
     }
 }
 
-@MainActor
 protocol HelperServiceRegistering: AnyObject, Sendable {
-    var status: HelperServiceStatus { get }
-    func register() throws
-    func unregister() async throws
+    @MainActor var status: HelperServiceStatus { get }
+    @MainActor func register() throws
+    @MainActor func unregister() async throws
 }
 
 @MainActor
@@ -71,18 +70,17 @@ final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked
     }
 }
 
-@MainActor
-struct HelperInstaller {
+struct HelperInstaller: Sendable {
     private let service: any HelperServiceRegistering
     private let pollInterval: Duration
     private let maxUnregisterWait: Duration
-    private let sleep: (Duration) async throws -> Void
+    private let sleep: @Sendable (Duration) async throws -> Void
 
     init(
         service: HelperServiceRegistering,
         pollInterval: Duration = .milliseconds(250),
         maxUnregisterWait: Duration = .seconds(10),
-        sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.service = service
         self.pollInterval = pollInterval
@@ -91,17 +89,17 @@ struct HelperInstaller {
     }
 
     func reinstall() async throws {
-        if service.status.isRegistered {
+        if await service.status.isRegistered {
             try await service.unregister()
             try await waitForUnregistration()
         }
 
-        try service.register()
+        try await service.register()
     }
 
     private func waitForUnregistration() async throws {
         var waited: Duration = .zero
-        while service.status.isRegistered {
+        while await service.status.isRegistered {
             guard waited < maxUnregisterWait else {
                 throw HelperInstallerError.unregisterTimedOut
             }

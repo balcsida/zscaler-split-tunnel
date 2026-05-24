@@ -4,21 +4,21 @@ import XCTest
 final class HelperInstallerTests: XCTestCase {
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
         let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered])
-        var sleeps: [Duration] = []
+        let sleeps = SleepRecorder()
         let installer = HelperInstaller(
             service: service,
             pollInterval: .milliseconds(250),
             maxUnregisterWait: .seconds(2),
             sleep: { duration in
-                service.recordSleep()
-                sleeps.append(duration)
+                await service.recordSleep()
+                await sleeps.append(duration)
             }
         )
 
         try await installer.reinstall()
 
         XCTAssertEqual(service.events, [.status, .unregister, .status, .sleep, .status, .register])
-        XCTAssertEqual(sleeps, [.milliseconds(250)])
+        XCTAssertEqual(sleeps.values, [.milliseconds(250)])
     }
 
     func testReinstallFailsWithoutRegisteringWhenOldRegistrationPersists() async {
@@ -27,7 +27,7 @@ final class HelperInstallerTests: XCTestCase {
             service: service,
             pollInterval: .milliseconds(250),
             maxUnregisterWait: .milliseconds(500),
-            sleep: { _ in service.recordSleep() }
+            sleep: { _ in await service.recordSleep() }
         )
 
         do {
@@ -47,6 +47,15 @@ final class HelperInstallerTests: XCTestCase {
         try await installer.reinstall()
 
         XCTAssertEqual(service.events, [.status, .register])
+    }
+}
+
+@MainActor
+private final class SleepRecorder: @unchecked Sendable {
+    private(set) var values: [Duration] = []
+
+    func append(_ duration: Duration) {
+        values.append(duration)
     }
 }
 
