@@ -71,7 +71,8 @@ final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked
     }
 }
 
-struct HelperInstaller: Sendable {
+@MainActor
+struct HelperInstaller {
     private let service: any HelperServiceRegistering
     private let pollInterval: Duration
     private let maxUnregisterWait: Duration
@@ -90,17 +91,17 @@ struct HelperInstaller: Sendable {
     }
 
     func reinstall() async throws {
-        if await service.status.isRegistered {
+        if service.status.isRegistered {
             try await service.unregister()
             try await waitForUnregistration()
         }
 
-        try await service.register()
+        try service.register()
     }
 
     private func waitForUnregistration() async throws {
         var waited: Duration = .zero
-        while await service.status.isRegistered {
+        while service.status.isRegistered {
             guard waited < maxUnregisterWait else {
                 throw HelperInstallerError.unregisterTimedOut
             }
