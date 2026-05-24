@@ -43,10 +43,11 @@ enum HelperInstallerError: LocalizedError, Equatable {
     }
 }
 
+@MainActor
 protocol HelperServiceRegistering: AnyObject, Sendable {
-    @MainActor var status: HelperServiceStatus { get }
-    @MainActor func register() throws
-    @MainActor func unregister() async throws
+    var status: HelperServiceStatus { get }
+    func register() throws
+    func unregister() async throws
 }
 
 @MainActor
