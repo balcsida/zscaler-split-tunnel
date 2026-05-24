@@ -44,14 +44,14 @@ enum HelperInstallerError: LocalizedError, Equatable {
 }
 
 @MainActor
-protocol HelperServiceRegistering: AnyObject {
+protocol HelperServiceRegistering: AnyObject, Sendable {
     var status: HelperServiceStatus { get }
     func register() throws
     func unregister() async throws
 }
 
 @MainActor
-final class SMAppServiceHelperRegistration: HelperServiceRegistering {
+final class SMAppServiceHelperRegistration: HelperServiceRegistering, @unchecked Sendable {
     private let service: SMAppService
 
     init(plistName: String = "\(AppConstants.helperBundleID).plist") {
@@ -73,7 +73,7 @@ final class SMAppServiceHelperRegistration: HelperServiceRegistering {
 
 @MainActor
 struct HelperInstaller {
-    private let service: HelperServiceRegistering
+    private let service: any HelperServiceRegistering
     private let pollInterval: Duration
     private let maxUnregisterWait: Duration
     private let sleep: (Duration) async throws -> Void
