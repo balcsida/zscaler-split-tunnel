@@ -1,130 +1,173 @@
 # Zscaler Split Tunnel for macOS
 
-A powerful tool to enable split tunneling with Zscaler on macOS, allowing you to route specific domains and IP addresses through Zscaler while the rest of your traffic goes directly to the internet.
+Zscaler Split Tunnel is a macOS utility for keeping Zscaler active only where
+you need it. It removes Zscaler's broad catch-all routes, restores explicit
+routes for corporate resources, and lets the rest of your traffic use the
+normal network path.
 
-Includes both a **shell script daemon** and a native **macOS menu bar app** with a privileged helper.
+<p align="center">
+  <img src="docs/assets/menu-bar-status.png" alt="Zscaler Split Tunnel menu bar status showing active monitoring and route counts" width="360">
+</p>
 
-## Features
+The project includes two operating modes:
 
-- **Automatic Route Management**: Continuously removes Zscaler's broad routes that capture all internet traffic
-- **Zscaler Route Configuration**: Route specific domains, IPs, or CIDR ranges through Zscaler
-- **Direct Override Configuration**: Force specific routes to use the direct network gateway when Zscaler has a more-specific route
-- **Automatic Config Reload**: Applies configuration changes immediately while the daemon runs on a low-frequency cadence
-- **Smart Zscaler Management**: Only starts Zscaler if not already running
-- **Domain Resolution**: Automatically resolves domains to IP addresses with caching
-- **Daemon Mode**: Runs in the background to maintain split tunnel configuration
-- **Autostart Support**: Optional launchd job keeps the daemon running after reboots
-- **Office WiFi Routing**: When connected to a corporate switch (detected via CDP/LLDP), routes direct override traffic through a guest WiFi interface
-- **Native macOS App**: SwiftUI menu bar app with real-time status, route counters, and a privileged helper daemon
+| Mode | Best for | Interface |
+| --- | --- | --- |
+| Native macOS app | Day-to-day use, status checks, route editing, and helper operations | SwiftUI menu bar app with a privileged helper |
+| Shell daemon | Headless or scriptable environments | Bash daemon with launchd autostart support |
 
-## Quick Install
+> This is an independent utility and is not affiliated with Zscaler. It changes
+> macOS routes and may interrupt network access if misconfigured. Review your
+> routes before using it on a production laptop.
+
+## Highlights
+
+- Removes Zscaler's broad IPv4 routes that capture most internet traffic.
+- Restores only the configured domains, IPs, and CIDR ranges through Zscaler.
+- Supports direct overrides for destinations that must bypass Zscaler.
+- Monitors network and configuration changes, then refreshes routes automatically.
+- Resolves domains to IP addresses with local caching.
+- Provides a SwiftUI menu bar app with live status, route counters, and controls.
+- Includes a scriptable daemon for teams that prefer CLI-first operation.
+- Supports optional office WiFi routing for direct overrides when a corporate
+  Ethernet network is detected.
+
+## Quick Start
+
+Clone the repository and install the shell daemon:
 
 ```bash
-# Clone the repository
-git clone https://github.com/balcsida/zscaler-split-tunnel.git && cd zscaler-split-tunnel
+git clone https://github.com/balcsida/zscaler-split-tunnel.git
+cd zscaler-split-tunnel
 
-# Install and start
-chmod +x zscaler-split-tunnel.sh && \
-sudo mkdir -p /usr/local/bin && \
-sudo cp zscaler-split-tunnel.sh /usr/local/bin/zscaler-split-tunnel && \
-sudo chmod +x /usr/local/bin/zscaler-split-tunnel && \
+chmod +x zscaler-split-tunnel.sh
+sudo mkdir -p /usr/local/bin
+sudo cp zscaler-split-tunnel.sh /usr/local/bin/zscaler-split-tunnel
+sudo chmod +x /usr/local/bin/zscaler-split-tunnel
 sudo zscaler-split-tunnel --start
 ```
 
-## Usage
-
-### Basic Commands
+Check the current state without `sudo`:
 
 ```bash
-# Start split tunneling (starts Zscaler if needed)
-sudo zscaler-split-tunnel --start
-
-# Stop split tunneling daemon
-sudo zscaler-split-tunnel --stop
-
-# Completely kill Zscaler app and services
-sudo zscaler-split-tunnel --kill
-
-# Check status
 zscaler-split-tunnel --status
-
-# Show all routes
 zscaler-split-tunnel --list
 ```
 
-### Configuration Management
+## Native Menu Bar App
+
+The native app lives in `macOS/` and pairs a SwiftUI menu bar interface with a
+privileged helper installed through SMJobBless. It is intended for interactive
+use: start or stop monitoring, refresh routes, manage Zscaler, flush DNS, and
+edit both route lists from a settings window.
+
+Build from source with Xcode 16+:
 
 ```bash
-# Add domain/IP/CIDR to route through Zscaler
-zscaler-split-tunnel --add example.com
-zscaler-split-tunnel --add 192.168.1.0/24
-zscaler-split-tunnel --add 10.0.0.5
-
-# Remove entry from configuration
-zscaler-split-tunnel --remove example.com
-
-# Show current configuration
-zscaler-split-tunnel --show-config
-
-# Clear all Zscaler routes
-zscaler-split-tunnel --clear-config
+cd macOS
+xcodegen generate
+open ZscalerSplitTunnel.xcodeproj
 ```
 
-### Advanced Options
+Build both targets:
+
+- `ZscalerSplitTunnel`
+- `com.zscaler-split-tunnel.helper`
+
+The app runs as a menu bar item. The helper performs privileged route
+operations through XPC; the app itself stays unprivileged.
+
+## CLI Usage
+
+### Service Control
 
 ```bash
-# Start with custom check interval (default: 300 seconds)
-sudo zscaler-split-tunnel --start --interval 5
+# Start split tunneling and start Zscaler if needed
+sudo zscaler-split-tunnel --start
 
-# Enable verbose logging
-sudo zscaler-split-tunnel --start --verbose
+# Stop the split tunnel daemon
+sudo zscaler-split-tunnel --stop
 
-# Run daemon directly (for debugging)
+# Stop Zscaler app and services
+sudo zscaler-split-tunnel --kill
+
+# Run the daemon in the foreground while debugging
 sudo zscaler-split-tunnel --daemon --verbose
 ```
 
-### Autostart on Boot
+### Zscaler Routes
 
-Install a launchd service so the daemon starts automatically after reboots:
+Zscaler routes are destinations that should continue to use the Zscaler tunnel.
+
+```bash
+zscaler-split-tunnel --add internal.company.com
+zscaler-split-tunnel --add 192.168.1.0/24
+zscaler-split-tunnel --add 10.0.0.5
+
+zscaler-split-tunnel --remove internal.company.com
+zscaler-split-tunnel --show-config
+zscaler-split-tunnel --clear-config
+```
+
+### Direct Overrides
+
+Direct overrides are destinations that should use the normal gateway even when
+Zscaler has installed a more-specific route for them.
+
+```bash
+zscaler-split-tunnel --add-bypass api.example.com
+zscaler-split-tunnel --remove-bypass api.example.com
+zscaler-split-tunnel --show-bypass
+zscaler-split-tunnel --clear-bypass
+```
+
+### Autostart
+
+Install or remove the launchd service:
 
 ```bash
 sudo zscaler-split-tunnel --enable-autostart
-```
-
-Remove it later with:
-
-```bash
 sudo zscaler-split-tunnel --disable-autostart
 ```
 
-## Configuration Files
+## Configuration
 
-Defaults are versioned in this repository so the whole team shares the same baseline:
+Team defaults are versioned in this repository:
 
-- `config/zscaler-split-tunnel.conf` – Zscaler routes forced through the tunnel
-- `config/zscaler-bypass.conf` – direct overrides that should skip Zscaler
+| File | Purpose |
+| --- | --- |
+| `config/zscaler-split-tunnel.conf` | Default destinations routed through Zscaler |
+| `config/zscaler-bypass.conf` | Default direct overrides routed outside Zscaler |
 
-User-specific overrides live under `~/.config/zscaler-split-tunnel/`:
+User-specific files live under `~/.config/zscaler-split-tunnel/`:
 
-- `~/.config/zscaler-split-tunnel/routes.conf`
-- `~/.config/zscaler-split-tunnel/bypass.conf`
+| File | Purpose |
+| --- | --- |
+| `routes.conf` | User Zscaler routes |
+| `bypass.conf` | User direct overrides |
+| `office-mode.json` | Optional office WiFi routing settings |
+| `domain-cache.txt` | Runtime domain resolution cache |
+| `remote-route-cache.txt` | Runtime cache for remote route lists |
 
-The `--add` and `--add-bypass` commands append to the user files, keeping defaults untouched.
-Example overrides file:
+Example `routes.conf`:
 
-```bash
-# Example overrides
+```text
+# Domains, IPs, or CIDR ranges routed through Zscaler
 internal.company.com
 vpn.company.com
 192.168.100.0/24
 10.0.0.50
 ```
 
-Changes are written to disk immediately and the running daemon reloads the new configuration right away.
+The `--add`, `--remove`, `--add-bypass`, and `--remove-bypass` commands update
+the user files. Defaults remain untouched, and a running daemon reloads changes
+automatically.
 
-### Office WiFi Routing
+## Office WiFi Routing
 
-When your Mac is connected to Ethernet at the office (detected via CDP/LLDP discovery packets from corporate switches) and a guest WiFi network is available, direct overrides can be automatically routed through the WiFi gateway instead of the default Ethernet gateway.
+Office mode can route direct overrides through a guest WiFi gateway when the Mac
+is connected to a corporate Ethernet network. The detector uses CDP/LLDP
+discovery packets and an optional switch-name allow list.
 
 Create `~/.config/zscaler-split-tunnel/office-mode.json`:
 
@@ -137,85 +180,74 @@ Create `~/.config/zscaler-split-tunnel/office-mode.json`:
 }
 ```
 
-## macOS Menu Bar App
-
-The `macOS/` directory contains a native SwiftUI menu bar application with:
-
-- Real-time status display (Zscaler interface, monitoring state, route counts)
-- Start/stop monitoring, refresh routes
-- Start/kill Zscaler
-- DNS cache flushing
-- Office mode status display
-- Settings window for Zscaler routes and direct overrides
-
-Build with Xcode 16+ or [XcodeGen](https://github.com/yonaskolb/XcodeGen):
-
-```bash
-cd macOS
-xcodegen generate
-open ZscalerSplitTunnel.xcodeproj
-```
+Leave `switchNamePatterns` empty to accept any detected switch while office mode
+is enabled.
 
 ## How It Works
 
-1. **Broad Route Removal**: Removes Zscaler's broad routes (like 1.0.0.0/8, 2.0.0.0/7, etc.) that capture most internet traffic
-2. **Zscaler Routes**: Adds specific routes for your configured domains/IPs through the Zscaler interface (typically utun8)
-3. **Continuous Monitoring**: Runs as a daemon on a low-frequency (5 minute) interval to keep routes tidy without burning CPU
-4. **Automatic Updates**: Signals the daemon to reload instantly whenever configuration files change
+1. Zscaler installs broad routes such as `1.0.0.0/8`, `2.0.0.0/7`, and
+   `128.0.0.0/2` that can capture most IPv4 traffic.
+2. The tool removes those broad routes.
+3. It resolves configured domains, validates IPs and CIDR ranges, and adds
+   explicit routes for Zscaler destinations through the active `utun` interface.
+4. It applies direct overrides through the normal gateway, or through the office
+   WiFi gateway when office mode is active.
+5. A monitor loop refreshes route state on a low-frequency interval and reacts
+   to configuration or network changes.
 
 ## Files and Logs
 
-- **Default configs**: `config/zscaler-split-tunnel.conf`, `config/zscaler-bypass.conf`
-- **User overrides**: `~/.config/zscaler-split-tunnel/routes.conf`, `~/.config/zscaler-split-tunnel/bypass.conf`
-- **Log File**: `/tmp/zscaler-split-tunnel.log`
-- **PID File**: `/tmp/zscaler-split-tunnel.pid`
-- **Domain Cache**: `/tmp/zscaler-domain-cache.txt`
-- **LaunchDaemon (optional autostart)**: `/Library/LaunchDaemons/com.github.zscaler-split-tunnel.plist`
+| Path | Description |
+| --- | --- |
+| `/tmp/zscaler-split-tunnel.log` | Shell daemon log |
+| `/tmp/zscaler-split-tunnel.pid` | Shell daemon PID file |
+| `/Library/LaunchDaemons/com.github.zscaler-split-tunnel.plist` | Optional launchd service |
+| `~/.config/zscaler-split-tunnel/` | User configuration and runtime caches |
 
 ## Troubleshooting
 
-### Check if split tunneling is active
+Inspect the current state:
+
 ```bash
 zscaler-split-tunnel --status
-```
-
-### View detailed routes
-```bash
 zscaler-split-tunnel --list
 ```
 
-### Check logs
+Follow daemon logs:
+
 ```bash
 tail -f /tmp/zscaler-split-tunnel.log
 ```
 
-### Verify a domain is routed through Zscaler
+Verify where a destination is routed:
+
 ```bash
-# Check route for a specific IP
-route get $(dig +short example.com | head -1)
+route get "$(dig +short example.com | head -1)"
 ```
 
-### If a site isn't loading
-1. Check DNS resolution: `dig +short yourdomain.com`
-2. Verify the route: `netstat -rn | grep <ip-address>`
-3. Test connectivity: `curl -I https://yourdomain.com`
+If a destination is not loading:
 
-## Common Use Cases
-
-### Corporate Resources
-Route internal corporate resources through Zscaler while keeping personal traffic direct:
-```bash
-zscaler-split-tunnel --add internal.company.com
-zscaler-split-tunnel --add jira.company.com
-zscaler-split-tunnel --add gitlab.company.com
-```
+1. Confirm DNS resolution with `dig +short yourdomain.com`.
+2. Check the selected route with `route get <ip-address>`.
+3. Inspect the route table with `netstat -rn`.
+4. Test connectivity with `curl -I https://yourdomain.com`.
+5. Review recent helper or daemon logs before changing the route list.
 
 ## Requirements
 
-- macOS (tested on macOS 15.5)
-- Zscaler client installed
-- Administrator privileges (for route management)
-- Standard macOS command line tools (netstat, route, dig, curl)
+- macOS 14 or newer for the native app
+- Zscaler Client Connector installed
+- Administrator privileges for route changes
+- Standard macOS command line tools: `route`, `netstat`, `dig`, and `curl`
+- Xcode 16+ and XcodeGen for the native app
+
+## Security Notes
+
+- The privileged helper and shell daemon execute `/sbin/route`; keep route input
+  limited to trusted domains, IP addresses, and CIDR ranges.
+- Do not commit personal routes, credentials, private hostnames, or internal URLs.
+- Test route changes on a non-critical network before deploying broadly.
+- Use the status and route inspection commands before and after changing config.
 
 ## License
 

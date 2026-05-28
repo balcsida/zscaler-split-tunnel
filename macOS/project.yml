@@ -49,9 +49,15 @@ targets:
       - name: "Copy Helper and Daemon Plist"
         script: |
           mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices"
-          cp "${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/" 2>/dev/null || true
+          cp "${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/"
           mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons"
-          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist" 2>/dev/null || true
+          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
+        inputFiles:
+          - "$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper"
+          - "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist"
+        outputFiles:
+          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"
+          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         basedOnDependencyAnalysis: false
 
   ZscalerSplitTunnelHelper:

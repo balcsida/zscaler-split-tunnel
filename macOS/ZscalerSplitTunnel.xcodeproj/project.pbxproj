@@ -134,12 +134,12 @@
 		B5A8B2679A8FFB018FD60C4E /* NetworkDeviceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkDeviceTab.swift; sourceTree = "<group>"; };
 		B6EB053484A1BF375FFDA9E5 /* IPValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPValidation.swift; sourceTree = "<group>"; };
 		B7648F2DFFF87AA760F6658A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		C1358732CAF769DFCBA44456 /* ZscalerSplitTunnel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZscalerSplitTunnel.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1358732CAF769DFCBA44456 /* Zscaler Split Tunnel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Zscaler Split Tunnel.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C85C77203378AF51E2A78185 /* BroadRouteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BroadRouteManager.swift; sourceTree = "<group>"; };
 		CD3BF3E104EB510C0674BCCC /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		CFB0B04869C3F2898F38CC00 /* IPValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPValidator.swift; sourceTree = "<group>"; };
 		D2C151D0D47F7C428DA0DA3D /* DNSResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSResolver.swift; sourceTree = "<group>"; };
-		D6427B1BAD7568B4BAF2A72E /* ZscalerSplitTunnelHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = ZscalerSplitTunnelHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6427B1BAD7568B4BAF2A72E /* com.zscaler-split-tunnel.helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.zscaler-split-tunnel.helper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRouteFetcher.swift; sourceTree = "<group>"; };
 		DC4365D5243E404771C030B1 /* ConfigEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigEntry.swift; sourceTree = "<group>"; };
 		E285333A9666D9DBABE2486F /* LLDPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLDPParser.swift; sourceTree = "<group>"; };
@@ -276,8 +276,8 @@
 		B744DD3B3A8131259DA4D9D8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C1358732CAF769DFCBA44456 /* ZscalerSplitTunnel.app */,
-				D6427B1BAD7568B4BAF2A72E /* ZscalerSplitTunnelHelper */,
+				C1358732CAF769DFCBA44456 /* Zscaler Split Tunnel.app */,
+				D6427B1BAD7568B4BAF2A72E /* com.zscaler-split-tunnel.helper */,
 				7178BB39C75BD7C3E9433B06 /* ZscalerSplitTunnelHelperTests.xctest */,
 				3C2801D0C6C19E03C559EB13 /* ZscalerSplitTunnelTests.xctest */,
 			);
@@ -370,7 +370,7 @@
 			packageProductDependencies = (
 			);
 			productName = ZscalerSplitTunnel;
-			productReference = C1358732CAF769DFCBA44456 /* ZscalerSplitTunnel.app */;
+			productReference = C1358732CAF769DFCBA44456 /* Zscaler Split Tunnel.app */;
 			productType = "com.apple.product-type.application";
 		};
 		A7127AB62170FA7A43B2A674 /* ZscalerSplitTunnelTests */ = {
@@ -421,7 +421,7 @@
 			packageProductDependencies = (
 			);
 			productName = ZscalerSplitTunnelHelper;
-			productReference = D6427B1BAD7568B4BAF2A72E /* ZscalerSplitTunnelHelper */;
+			productReference = D6427B1BAD7568B4BAF2A72E /* com.zscaler-split-tunnel.helper */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -431,7 +431,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					004C5D2A4FD9AD6B7B161680 = {
 						DevelopmentTeam = 8A7FU99APT;
@@ -473,15 +473,19 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper",
+				"$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist",
 			);
 			name = "Copy Helper and Daemon Plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper",
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices\"\ncp \"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/\" 2>/dev/null || true\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\" 2>/dev/null || true\n";
+			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices\"\ncp \"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/\"\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -599,11 +603,15 @@
 				CODE_SIGN_ENTITLEMENTS = ZscalerSplitTunnel/Resources/ZscalerSplitTunnel.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8A7FU99APT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnel/Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.zscaler-split-tunnel.app";
 				PRODUCT_NAME = "Zscaler Split Tunnel";
 				SDKROOT = macosx;
@@ -614,6 +622,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -644,9 +653,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -660,6 +671,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -672,6 +684,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -689,6 +702,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -704,6 +718,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -734,9 +749,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -757,6 +774,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -769,6 +787,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -787,11 +806,15 @@
 				CODE_SIGN_ENTITLEMENTS = ZscalerSplitTunnel/Resources/ZscalerSplitTunnel.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8A7FU99APT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ZscalerSplitTunnel/Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.zscaler-split-tunnel.app";
 				PRODUCT_NAME = "Zscaler Split Tunnel";
 				SDKROOT = macosx;
@@ -804,6 +827,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGNING_ALLOWED = NO;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -821,6 +845,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8A7FU99APT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -851,6 +876,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8A7FU99APT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
