@@ -473,15 +473,19 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper",
+				"$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist",
 			);
 			name = "Copy Helper and Daemon Plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper",
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices\"\ncp \"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/\" 2>/dev/null || true\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\" 2>/dev/null || true\n";
+			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices\"\ncp \"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/\"\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
