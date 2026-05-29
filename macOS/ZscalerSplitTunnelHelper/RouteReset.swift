@@ -125,37 +125,15 @@ enum RouteReset {
     /// Returns true if it had to install a default route (i.e. the table was
     /// missing one and an en*-attached router was available in NDP).
     private static func installIPv6DefaultIfMissing() -> Bool {
-        let check = ShellRunner.runCapturingStderr("/sbin/route",
-            arguments: ["-n", "get", "-inet6", "default"])
-        if check.exitCode == 0 && check.stdout.contains("gateway:") {
+        switch IPv6DefaultRouteRepair.restoreIfMissing() {
+        case .defaultPresent, .noDefaultRouters:
+            return false
+        case .repaired:
+            return true
+        case .failed(let errors):
+            logger.warning("Failed to install IPv6 default route: \(errors.joined(separator: "; "), privacy: .public)")
             return false
         }
-
-        let ndp = ShellRunner.runCapturingStderr("/usr/sbin/ndp", arguments: ["-rn"])
-        guard ndp.exitCode == 0 else { return false }
-
-        // Lines look like:
-        //   fe80::962a:6fff:feca:9068%en0 if=en0, flags=T, pref=high, expire=29m52s
-        //   fe80::%utun0 if=utun0, flags=IST, pref=medium, expire=Never
-        // Pick the first router whose scope is an en* interface (skip utun).
-        for line in ndp.stdout.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard let gateway = trimmed.split(separator: " ").first else { continue }
-            let gw = String(gateway)
-            // Only accept routers attached to an en* interface; utun routers
-            // are exactly the stale entries we're trying to work around.
-            guard let pctIdx = gw.firstIndex(of: "%") else { continue }
-            let scope = gw[gw.index(after: pctIdx)...]
-            guard scope.hasPrefix("en") else { continue }
-
-            let add = ShellRunner.runCapturingStderr("/sbin/route",
-                arguments: ["-n", "add", "-inet6", "default", gw])
-            if add.exitCode == 0 {
-                return true
-            }
-            logger.warning("route add -inet6 default \(gw, privacy: .public) failed: \(add.stderr, privacy: .public)")
-        }
-        return false
     }
 
     // MARK: - Stale tunnel-default cleanup

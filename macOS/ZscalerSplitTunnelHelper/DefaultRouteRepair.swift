@@ -190,3 +190,158 @@ enum DefaultRouteRepair {
         }
     }
 }
+
+enum IPv6DefaultRouteRepair {
+    private static let logger = Logger(subsystem: AppConstants.helperBundleID, category: "IPv6DefaultRouteRepair")
+
+    struct DefaultRoute: Equatable, Sendable {
+        let gateway: String
+        let interface: String
+    }
+
+    struct Router: Equatable, Sendable {
+        let gateway: String
+        let interface: String
+    }
+
+    enum RouteOperationResult: Equatable, Sendable {
+        case success
+        case alreadyExists
+        case failure(String)
+    }
+
+    enum Result: Equatable, Sendable {
+        case defaultPresent
+        case noDefaultRouters
+        case repaired(gateway: String, interface: String)
+        case failed(errors: [String])
+    }
+
+    static func restoreIfMissing() -> Result {
+        restoreIfMissing(
+            getDefaultRoute: {
+                let result = ShellRunner.runCapturingStderr("/sbin/route",
+                    arguments: ["-n", "get", "-inet6", "default"])
+                guard result.exitCode == 0 else { return nil }
+                return parseDefaultRoute(result.stdout)
+            },
+            defaultRouters: {
+                let result = ShellRunner.runCapturingStderr("/usr/sbin/ndp", arguments: ["-rn"])
+                guard result.exitCode == 0 else {
+                    logger.warning("ndp -rn failed: \(result.stderr, privacy: .public)")
+                    return []
+                }
+                return parseDefaultRouters(result.stdout)
+            },
+            addDefaultRoute: { gateway in
+                runRouteCommand(["-n", "add", "-inet6", "default", gateway])
+            }
+        )
+    }
+
+    static func restoreIfMissing(
+        getDefaultRoute: () -> DefaultRoute?,
+        defaultRouters: () -> [Router],
+        addDefaultRoute: (String) -> RouteOperationResult
+    ) -> Result {
+        if isUsableDefaultRoute(getDefaultRoute()) {
+            return .defaultPresent
+        }
+
+        let candidates = defaultRouters().filter(isUsableDefaultRouter)
+        guard !candidates.isEmpty else {
+            return .noDefaultRouters
+        }
+
+        var errors: [String] = []
+        for router in candidates {
+            switch addDefaultRoute(router.gateway) {
+            case .success, .alreadyExists:
+                if let defaultRoute = getDefaultRoute(), isUsableDefaultRoute(defaultRoute) {
+                    return .repaired(gateway: defaultRoute.gateway, interface: defaultRoute.interface)
+                }
+                errors.append("\(router.interface): route add did not restore IPv6 default")
+            case .failure(let message):
+                errors.append("\(router.interface): \(message)")
+            }
+        }
+
+        return .failed(errors: errors)
+    }
+
+    static func parseDefaultRoute(_ output: String) -> DefaultRoute? {
+        var gateway: String?
+        var interface: String?
+
+        for line in output.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("gateway:") {
+                gateway = trimmed.dropFirst("gateway:".count)
+                    .trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("interface:") {
+                interface = trimmed.dropFirst("interface:".count)
+                    .trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        guard let gateway, !gateway.isEmpty else { return nil }
+        let routeInterface = interface?.isEmpty == false
+            ? interface!
+            : scopedInterface(from: gateway)
+        guard let routeInterface, !routeInterface.isEmpty else { return nil }
+        return DefaultRoute(gateway: gateway, interface: routeInterface)
+    }
+
+    static func parseDefaultRouters(_ output: String) -> [Router] {
+        output.components(separatedBy: "\n").compactMap { line in
+            let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+            guard let gateway = parts.first, gateway.contains(":") else { return nil }
+
+            let explicitInterface = parts
+                .first { $0.hasPrefix("if=") }
+                .map { String($0.dropFirst("if=".count)).trimmingCharacters(in: CharacterSet(charactersIn: ",")) }
+            let routerInterface = explicitInterface?.isEmpty == false
+                ? explicitInterface!
+                : scopedInterface(from: gateway)
+
+            guard let routerInterface, !routerInterface.isEmpty else { return nil }
+            return Router(gateway: gateway, interface: routerInterface)
+        }
+    }
+
+    private static func isUsableDefaultRoute(_ route: DefaultRoute?) -> Bool {
+        guard let route, route.gateway.contains(":") else { return false }
+        return isPhysicalNetworkInterface(route.interface)
+    }
+
+    private static func isUsableDefaultRouter(_ router: Router) -> Bool {
+        router.gateway.contains(":")
+            && router.gateway.contains("%")
+            && isPhysicalNetworkInterface(router.interface)
+    }
+
+    private static func isPhysicalNetworkInterface(_ interface: String) -> Bool {
+        interface.hasPrefix("en") && interface.dropFirst(2).allSatisfy(\.isNumber)
+    }
+
+    private static func scopedInterface(from gateway: String) -> String? {
+        guard let scopeStart = gateway.firstIndex(of: "%") else { return nil }
+        let scope = gateway[gateway.index(after: scopeStart)...]
+        return scope.isEmpty ? nil : String(scope)
+    }
+
+    private static func runRouteCommand(_ arguments: [String]) -> RouteOperationResult {
+        let result = ShellRunner.runCapturingStderr("/sbin/route", arguments: arguments)
+        if result.exitCode == 0 {
+            return .success
+        }
+
+        let message = "\(result.stdout)\n\(result.stderr)"
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercased = message.lowercased()
+        if lowercased.contains("file exists") || lowercased.contains("already in table") {
+            return .alreadyExists
+        }
+        return .failure(message.isEmpty ? "route exited \(result.exitCode)" : message)
+    }
+}
