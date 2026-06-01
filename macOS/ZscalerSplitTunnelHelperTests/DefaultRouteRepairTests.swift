@@ -189,3 +189,77 @@ final class DefaultRouteRepairTests: XCTestCase {
         XCTAssertEqual(result, .defaultPresent)
     }
 }
+
+final class RouteEngineBypassRouteTests: XCTestCase {
+    func testReplacesBypassRouteWhenDestinationExistsViaWrongGateway() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.5/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in false },
+            anyRouteExists: { _, _ in true },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, ["replace"])
+    }
+
+    func testSkipsBypassRouteWhenCurrentGatewayAlreadyMatches() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.6/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in true },
+            anyRouteExists: { _, _ in
+                XCTFail("Any-route lookup should not run when expected route exists")
+                return false
+            },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, [])
+    }
+
+    func testAddsBypassRouteWhenDestinationDoesNotExist() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.6/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in false },
+            anyRouteExists: { _, _ in false },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, ["add"])
+    }
+}

@@ -516,11 +516,12 @@ final class MonitorLoop: @unchecked Sendable {
                     logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
-                if forceReplace {
-                    _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                } else if !RouteEngine.routeExists(destination: route, gateway: gateway, isIPv6: isIPv6) {
-                    _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                }
+                _ = RouteEngine.ensureBypassRoute(
+                    destination: route,
+                    gateway: gateway,
+                    isIPv6: isIPv6,
+                    forceReplace: forceReplace
+                )
             }
         } else {
             guard let iface = RouteEngine.detectZscalerInterface() else {
