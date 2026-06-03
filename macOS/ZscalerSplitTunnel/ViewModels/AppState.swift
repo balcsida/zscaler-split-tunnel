@@ -22,6 +22,7 @@ final class AppState {
     /// used right after a helper reinstall, during which launchd is still booting the
     /// new daemon and the first few XPC round-trips are expected to fail.
     private var suppressHelperErrorsUntil: Date?
+    private var pendingHelperInstallFailure: String?
 
     init() {
         // Reflect persisted SMAppService registration state immediately so the UI is correct before
@@ -39,6 +40,7 @@ final class AppState {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
+        pendingHelperInstallFailure = nil
 
         Task {
             let service = SMAppServiceHelperRegistration()
@@ -71,12 +73,21 @@ final class AppState {
                 // case — without this hint the user sees "nothing happens".
                 if service.status == .requiresApproval {
                     SMAppService.openSystemSettingsLoginItems()
-                    errorMessage = "Approve Zscaler Split Tunnel in System Settings → Login Items → Allow in the Background, then click Reinstall Helper again."
+                    pendingHelperInstallFailure = HelperInstallMessages.loginItemsApproval
+                    errorMessage = HelperInstallMessages.loginItemsApproval
                 } else {
                     errorMessage = nil
                 }
             } catch {
-                errorMessage = "Helper install failed: \(error.localizedDescription)"
+                if let installerError = error as? HelperInstallerError,
+                   case .registrationDidNotBecomeActive = installerError {
+                    pendingHelperInstallFailure = error.localizedDescription
+                    SMAppService.openSystemSettingsLoginItems()
+                    errorMessage = error.localizedDescription
+                } else {
+                    pendingHelperInstallFailure = nil
+                    errorMessage = "Helper install failed: \(error.localizedDescription)"
+                }
                 isHelperInstalled = service.status.isInstalled
             }
             isLoading = false
@@ -213,6 +224,7 @@ final class AppState {
             isHelperInstalled = true
             errorMessage = nil
             suppressHelperErrorsUntil = nil
+            pendingHelperInstallFailure = nil
 
             // Auto-start monitoring only when Zscaler is actually running. Otherwise the
             // poll would resurrect monitoring immediately after the user kills Zscaler,
@@ -231,19 +243,22 @@ final class AppState {
             helperStatus = nil
             splitTunnelState = .unknown
             await helperConnection.resetConnection()
-            let svcStatus = SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist").status
+            let svcStatus = HelperServiceStatus(
+                SMAppService.daemon(plistName: "\(AppConstants.helperBundleID).plist").status
+            )
             let inGrace = suppressHelperErrorsUntil.map { Date() < $0 } ?? false
             switch svcStatus {
             case .notRegistered, .notFound:
                 isHelperInstalled = false
-                errorMessage = inGrace ? nil : "Helper not installed"
+                errorMessage = inGrace ? nil : (pendingHelperInstallFailure ?? "Helper not installed")
             case .requiresApproval:
                 isHelperInstalled = true
-                errorMessage = "Approve helper in System Settings → General → Login Items"
+                pendingHelperInstallFailure = HelperInstallMessages.loginItemsApproval
+                errorMessage = HelperInstallMessages.loginItemsApproval
             case .enabled:
                 isHelperInstalled = true
                 errorMessage = inGrace ? nil : (helperLaunchSigningProblem() ?? "Helper not responding")
-            @unknown default:
+            case .unknown:
                 break
             }
         }

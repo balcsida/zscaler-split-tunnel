@@ -18,7 +18,7 @@ final class HelperInstallerTests: XCTestCase {
     }
 
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
-        let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered])
+        let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered, .enabled])
         let sleeps = SleepRecorder()
         let installer = HelperInstaller(
             service: service,
@@ -32,7 +32,7 @@ final class HelperInstallerTests: XCTestCase {
 
         try await installer.reinstall()
 
-        XCTAssertEqual(service.events, [.status, .unregister, .status, .sleep, .status, .register])
+        XCTAssertEqual(service.events, [.status, .unregister, .status, .sleep, .status, .register, .status])
         XCTAssertEqual(sleeps.values, [.milliseconds(250)])
     }
 
@@ -56,12 +56,28 @@ final class HelperInstallerTests: XCTestCase {
     }
 
     func testInstallRegistersImmediatelyWhenNoExistingRegistrationIsPresent() async throws {
-        let service = FakeHelperService(statuses: [.notRegistered])
+        let service = FakeHelperService(statuses: [.notRegistered, .enabled])
         let installer = HelperInstaller(service: service, sleep: { _ in XCTFail("Unexpected sleep") })
 
         try await installer.reinstall()
 
-        XCTAssertEqual(service.events, [.status, .register])
+        XCTAssertEqual(service.events, [.status, .register, .status])
+    }
+
+    func testReinstallFailsWhenRegistrationDoesNotBecomeActive() async {
+        let service = FakeHelperService(statuses: [.notRegistered, .notRegistered])
+        let installer = HelperInstaller(service: service, sleep: { _ in XCTFail("Unexpected sleep") })
+
+        do {
+            try await installer.reinstall()
+            XCTFail("Expected reinstall to fail when registration remains inactive")
+        } catch HelperInstallerError.registrationDidNotBecomeActive(let status) {
+            XCTAssertEqual(status, .notRegistered)
+            XCTAssertEqual(HelperInstallerError.registrationDidNotBecomeActive(status).errorDescription, HelperInstallMessages.loginItemsApproval)
+            XCTAssertEqual(service.events, [.status, .register, .status])
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 }
 
