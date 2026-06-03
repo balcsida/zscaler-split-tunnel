@@ -48,16 +48,25 @@ targets:
     postBuildScripts:
       - name: "Copy Helper and Daemon Plist"
         script: |
-          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices"
-          cp "${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/"
-          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons"
-          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
+          set -eu
+
+          app_contents="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents"
+          helper_binary="${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper"
+          if [ ! -f "${helper_binary}" ]; then
+            helper_binary="${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper"
+          fi
+
+          mkdir -p "${app_contents}/Library/LaunchServices"
+          cp "${helper_binary}" "${app_contents}/Library/LaunchServices/"
+          mkdir -p "${app_contents}/Library/LaunchDaemons"
+          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         inputFiles:
           - "$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper"
+          - "$(UNINSTALLED_PRODUCTS_DIR)/macosx/com.zscaler-split-tunnel.helper"
           - "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist"
         outputFiles:
-          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"
-          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
+          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"
+          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         basedOnDependencyAnalysis: false
 
   ZscalerSplitTunnelHelper:
