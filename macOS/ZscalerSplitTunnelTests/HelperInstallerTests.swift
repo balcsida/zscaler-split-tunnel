@@ -1,6 +1,22 @@
+import Foundation
 import XCTest
 
 final class HelperInstallerTests: XCTestCase {
+    func testLaunchDaemonPlistAssociatesHelperWithMainAppBundle() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let plistURL = projectRoot.appendingPathComponent("ZscalerSplitTunnelHelper/Launchd.plist")
+        let data = try Data(contentsOf: plistURL)
+        let plist = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any]
+        )
+        let associatedBundleIDs = try XCTUnwrap(plist["AssociatedBundleIdentifiers"] as? [String])
+
+        XCTAssertTrue(associatedBundleIDs.contains(AppConstants.appBundleID))
+    }
+
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
         let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered])
         let sleeps = SleepRecorder()
