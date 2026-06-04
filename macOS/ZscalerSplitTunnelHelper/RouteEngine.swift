@@ -52,6 +52,52 @@ enum RouteEngine {
         return addBypassRoute(destination: destination, gateway: gateway, isIPv6: isIPv6)
     }
 
+    static func ensureBypassRoute(destination: String, gateway: String, isIPv6: Bool, forceReplace: Bool = false) -> Bool {
+        ensureBypassRoute(
+            destination: destination,
+            gateway: gateway,
+            isIPv6: isIPv6,
+            forceReplace: forceReplace,
+            expectedRouteExists: { destination, gateway, isIPv6 in
+                routeExists(destination: destination, gateway: gateway, isIPv6: isIPv6)
+            },
+            anyRouteExists: { destination, isIPv6 in
+                routeExists(destination: destination, isIPv6: isIPv6)
+            },
+            addRoute: { destination, gateway, isIPv6 in
+                addBypassRoute(destination: destination, gateway: gateway, isIPv6: isIPv6)
+            },
+            replaceRoute: { destination, gateway, isIPv6 in
+                replaceBypassRoute(destination: destination, gateway: gateway, isIPv6: isIPv6)
+            }
+        )
+    }
+
+    static func ensureBypassRoute(
+        destination: String,
+        gateway: String,
+        isIPv6: Bool,
+        forceReplace: Bool = false,
+        expectedRouteExists: (String, String, Bool) -> Bool,
+        anyRouteExists: (String, Bool) -> Bool,
+        addRoute: (String, String, Bool) -> Bool,
+        replaceRoute: (String, String, Bool) -> Bool
+    ) -> Bool {
+        if forceReplace {
+            return replaceRoute(destination, gateway, isIPv6)
+        }
+
+        if expectedRouteExists(destination, gateway, isIPv6) {
+            return true
+        }
+
+        if anyRouteExists(destination, isIPv6) {
+            return replaceRoute(destination, gateway, isIPv6)
+        }
+
+        return addRoute(destination, gateway, isIPv6)
+    }
+
     /// Replaces any existing route to `destination` with a fresh one via `interface`.
     /// Custom routes always go through this path so a cloned `WASCLONED` /32 left
     /// over on the default interface (created when the kernel beats the helper to

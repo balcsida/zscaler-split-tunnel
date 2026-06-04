@@ -32,13 +32,20 @@ enum HelperServiceStatus: Equatable {
     }
 }
 
+enum HelperInstallMessages {
+    static let loginItemsApproval = "Enable Zscaler Split Tunnel in System Settings → General → Login Items → Allow in the Background, then click Reinstall Helper again."
+}
+
 enum HelperInstallerError: LocalizedError, Equatable {
     case unregisterTimedOut
+    case registrationDidNotBecomeActive(HelperServiceStatus)
 
     var errorDescription: String? {
         switch self {
         case .unregisterTimedOut:
             return "Timed out waiting for the old helper registration to unload. Quit Zscaler Split Tunnel and try reinstalling the helper again."
+        case .registrationDidNotBecomeActive:
+            return HelperInstallMessages.loginItemsApproval
         }
     }
 }
@@ -99,6 +106,10 @@ struct HelperInstaller: Sendable {
         }
 
         try service.register()
+        let registeredStatus = service.status
+        guard registeredStatus.isRegistered else {
+            throw HelperInstallerError.registrationDidNotBecomeActive(registeredStatus)
+        }
     }
 
     private func waitForUnregistration() async throws {

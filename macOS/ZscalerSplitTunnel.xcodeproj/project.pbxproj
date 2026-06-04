@@ -61,6 +61,7 @@
 		B90BBC568F27AF39C6FD264E /* IPValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB0B04869C3F2898F38CC00 /* IPValidator.swift */; };
 		BC27AFFCD6533A313E80EC82 /* NetworkDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */; };
 		BCAC687A77FEFF86475F16A0 /* RouteInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6485E40BE3C0FC20299AD49D /* RouteInfo.swift */; };
+		BE1AD88346F9EB38F46E13AA /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F56223CC1AE4E916FF34C088 /* main.swift */; };
 		BE8E472D13CA962B7BAD8E02 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F611D2537433232A6BAD3171 /* MenuBarView.swift */; };
 		BF2CCDA2E1B79F11F0EF3623 /* HelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C41676E200EF18A76D56F15 /* HelperInstaller.swift */; };
 		C064534DA043A9692355FCB9 /* AddEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D1547C0BDA6D27CE7FCABC /* AddEntrySheet.swift */; };
@@ -89,6 +90,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0AD5582139DF4729A0D15604 /* Reset Background Tasks */ = {isa = PBXFileReference; includeInIndex = 0; path = "Reset Background Tasks"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C25FF9FC9BEB262D15730E2 /* DiscoveredDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredDeviceInfo.swift; sourceTree = "<group>"; };
 		11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigPaths.swift; sourceTree = "<group>"; };
 		126D6BD713F641816F2090E7 /* XPCProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCProtocol.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 		E6610E2F4B6D75B364E7D148 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		EC472DA44A91A33E8615D785 /* ConfigFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigFile.swift; sourceTree = "<group>"; };
 		F3A7927FA910B6CD8A7FA66E /* ZscalerServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerServiceManager.swift; sourceTree = "<group>"; };
+		F56223CC1AE4E916FF34C088 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F611D2537433232A6BAD3171 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkDetector.swift; sourceTree = "<group>"; };
 		FB03AE888CC51567A99E2C1D /* DiscoveredDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredDevice.swift; sourceTree = "<group>"; };
@@ -276,6 +279,7 @@
 		B744DD3B3A8131259DA4D9D8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				0AD5582139DF4729A0D15604 /* Reset Background Tasks */,
 				C1358732CAF769DFCBA44456 /* Zscaler Split Tunnel.app */,
 				D6427B1BAD7568B4BAF2A72E /* com.zscaler-split-tunnel.helper */,
 				7178BB39C75BD7C3E9433B06 /* ZscalerSplitTunnelHelperTests.xctest */,
@@ -309,6 +313,14 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		CEC8C1AF03E7253AB4DE7811 /* ResetBackgroundTasks */ = {
+			isa = PBXGroup;
+			children = (
+				F56223CC1AE4E916FF34C088 /* main.swift */,
+			);
+			path = ResetBackgroundTasks;
+			sourceTree = "<group>";
+		};
 		D1E7AE5B947FE66FD9D3510B /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -340,6 +352,7 @@
 		F7F79C263FB1A2FC85D9007A = {
 			isa = PBXGroup;
 			children = (
+				CEC8C1AF03E7253AB4DE7811 /* ResetBackgroundTasks */,
 				C5D0291D84787FAA0AB6D238 /* Shared */,
 				8791BEF57892B321112816CB /* ZscalerSplitTunnel */,
 				94BA637D9A0238AE226AB389 /* ZscalerSplitTunnelHelper */,
@@ -407,6 +420,24 @@
 			productReference = 7178BB39C75BD7C3E9433B06 /* ZscalerSplitTunnelHelperTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		EB2056F887C9D3AF8F6F9643 /* Reset Background Tasks */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EF4CDE88BD2C66B40A4E9AB0 /* Build configuration list for PBXNativeTarget "Reset Background Tasks" */;
+			buildPhases = (
+				21ABFD1A67164DA45DBAFB39 /* Sources */,
+				E3957802ACE762B16E13278E /* Reset Background Task Management */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Reset Background Tasks";
+			packageProductDependencies = (
+			);
+			productName = "Reset Background Tasks";
+			productReference = 0AD5582139DF4729A0D15604 /* Reset Background Tasks */;
+			productType = "com.apple.product-type.tool";
+		};
 		F81D63425C9B1F82D10EFACA /* ZscalerSplitTunnelHelper */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B183A71BCFF261AC5C9EC6D3 /* Build configuration list for PBXNativeTarget "ZscalerSplitTunnelHelper" */;
@@ -455,6 +486,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				EB2056F887C9D3AF8F6F9643 /* Reset Background Tasks */,
 				004C5D2A4FD9AD6B7B161680 /* ZscalerSplitTunnel */,
 				F81D63425C9B1F82D10EFACA /* ZscalerSplitTunnelHelper */,
 				BF7EB414833364820433F0E6 /* ZscalerSplitTunnelHelperTests */,
@@ -474,22 +506,51 @@
 			);
 			inputPaths = (
 				"$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper",
+				"$(UNINSTALLED_PRODUCTS_DIR)/macosx/com.zscaler-split-tunnel.helper",
 				"$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist",
 			);
 			name = "Copy Helper and Daemon Plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper",
-				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/MacOS/com.zscaler-split-tunnel.helper",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices\"\ncp \"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/\"\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
+			shellScript = "set -eu\n\napp_contents=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents\"\nhelper_binary=\"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\"\nif [ ! -f \"${helper_binary}\" ]; then\n  helper_binary=\"${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper\"\nfi\n\nmkdir -p \"${app_contents}/MacOS\"\ncp \"${helper_binary}\" \"${app_contents}/MacOS/\"\nmkdir -p \"${app_contents}/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
+		};
+		E3957802ACE762B16E13278E /* Reset Background Task Management */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/reset-background-tasks.sh",
+			);
+			name = "Reset Background Task Management";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Scripts/reset-background-tasks.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		21ABFD1A67164DA45DBAFB39 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE1AD88346F9EB38F46E13AA /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6CF76028B97429949BAFB608 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -614,6 +675,22 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.zscaler-split-tunnel.app";
 				PRODUCT_NAME = "Zscaler Split Tunnel";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		29C5F245A9D8ABB71FB5E127 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.zscaler-split-tunnel.ResetBackgroundTasks";
+				PRODUCT_NAME = ResetBackgroundTasks;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -799,6 +876,22 @@
 			};
 			name = Debug;
 		};
+		BE073BE9E255050DFB91F3CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.zscaler-split-tunnel.ResetBackgroundTasks";
+				PRODUCT_NAME = ResetBackgroundTasks;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		D6C0B66593858ADE6FAB16A8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -936,6 +1029,15 @@
 			buildConfigurations = (
 				E296CCFDDD09E95DDA8EEAE3 /* Debug */,
 				EBE1D4AC367E10FB55C74E9C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EF4CDE88BD2C66B40A4E9AB0 /* Build configuration list for PBXNativeTarget "Reset Background Tasks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				29C5F245A9D8ABB71FB5E127 /* Debug */,
+				BE073BE9E255050DFB91F3CE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

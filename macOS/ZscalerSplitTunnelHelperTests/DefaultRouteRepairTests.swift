@@ -119,4 +119,147 @@ final class DefaultRouteRepairTests: XCTestCase {
         XCTAssertEqual(addGateways, ["192.0.2.1"])
         XCTAssertEqual(dhcpRenewals, [])
     }
+
+    func testParsesIPv6DefaultRoutersFromNDPOutput() {
+        let routers = IPv6DefaultRouteRepair.parseDefaultRouters("""
+        fe80::962a:6fff:feca:9069%en0 if=en0, flags=T, pref=high, expire=28m42s
+        fe80::%utun0 if=utun0, flags=IST, pref=medium, expire=Never
+        fe80::c0d0:7d06:4e5c:8446%en0 if=en0, flags=, pref=medium, expire=1h57m4s
+        """)
+
+        XCTAssertEqual(routers, [
+            IPv6DefaultRouteRepair.Router(gateway: "fe80::962a:6fff:feca:9069%en0", interface: "en0"),
+            IPv6DefaultRouteRepair.Router(gateway: "fe80::%utun0", interface: "utun0"),
+            IPv6DefaultRouteRepair.Router(gateway: "fe80::c0d0:7d06:4e5c:8446%en0", interface: "en0")
+        ])
+    }
+
+    func testRepairsMissingIPv6DefaultUsingFirstNonTunnelRouter() {
+        var addedGateways: [String] = []
+        var defaultRoute: IPv6DefaultRouteRepair.DefaultRoute?
+
+        let result = IPv6DefaultRouteRepair.restoreIfMissing(
+            getDefaultRoute: { defaultRoute },
+            defaultRouters: {
+                [
+                    IPv6DefaultRouteRepair.Router(gateway: "fe80::%utun0", interface: "utun0"),
+                    IPv6DefaultRouteRepair.Router(gateway: "fe80::962a:6fff:feca:9069%en0", interface: "en0")
+                ]
+            },
+            addDefaultRoute: { gateway in
+                addedGateways.append(gateway)
+                defaultRoute = IPv6DefaultRouteRepair.DefaultRoute(gateway: gateway, interface: "en0")
+                return .success
+            }
+        )
+
+        XCTAssertEqual(result, .repaired(gateway: "fe80::962a:6fff:feca:9069%en0", interface: "en0"))
+        XCTAssertEqual(addedGateways, ["fe80::962a:6fff:feca:9069%en0"])
+    }
+
+    func testFailsIPv6RepairWhenRouteAddDoesNotCreateUsableDefault() {
+        let result = IPv6DefaultRouteRepair.restoreIfMissing(
+            getDefaultRoute: { nil },
+            defaultRouters: {
+                [
+                    IPv6DefaultRouteRepair.Router(gateway: "fe80::962a:6fff:feca:9069%en0", interface: "en0")
+                ]
+            },
+            addDefaultRoute: { _ in .alreadyExists }
+        )
+
+        XCTAssertEqual(result, .failed(errors: ["en0: route add did not restore IPv6 default"]))
+    }
+
+    func testLeavesUsableIPv6DefaultRouteAlone() {
+        let result = IPv6DefaultRouteRepair.restoreIfMissing(
+            getDefaultRoute: {
+                IPv6DefaultRouteRepair.DefaultRoute(gateway: "fe80::962a:6fff:feca:9069%en0", interface: "en0")
+            },
+            defaultRouters: {
+                XCTFail("NDP routers should not be queried when default route is already usable")
+                return []
+            },
+            addDefaultRoute: { _ in
+                XCTFail("route add should not run when default route is already usable")
+                return .failure("unexpected add")
+            }
+        )
+
+        XCTAssertEqual(result, .defaultPresent)
+    }
+}
+
+final class RouteEngineBypassRouteTests: XCTestCase {
+    func testReplacesBypassRouteWhenDestinationExistsViaWrongGateway() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.5/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in false },
+            anyRouteExists: { _, _ in true },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, ["replace"])
+    }
+
+    func testSkipsBypassRouteWhenCurrentGatewayAlreadyMatches() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.6/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in true },
+            anyRouteExists: { _, _ in
+                XCTFail("Any-route lookup should not run when expected route exists")
+                return false
+            },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, [])
+    }
+
+    func testAddsBypassRouteWhenDestinationDoesNotExist() {
+        var operations: [String] = []
+
+        let result = RouteEngine.ensureBypassRoute(
+            destination: "140.82.121.6/32",
+            gateway: "192.168.101.1",
+            isIPv6: false,
+            expectedRouteExists: { _, _, _ in false },
+            anyRouteExists: { _, _ in false },
+            addRoute: { _, _, _ in
+                operations.append("add")
+                return true
+            },
+            replaceRoute: { _, _, _ in
+                operations.append("replace")
+                return true
+            }
+        )
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(operations, ["add"])
+    }
 }

@@ -48,16 +48,25 @@ targets:
     postBuildScripts:
       - name: "Copy Helper and Daemon Plist"
         script: |
-          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices"
-          cp "${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchServices/"
-          mkdir -p "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons"
-          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
+          set -eu
+
+          app_contents="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents"
+          helper_binary="${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper"
+          if [ ! -f "${helper_binary}" ]; then
+            helper_binary="${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper"
+          fi
+
+          mkdir -p "${app_contents}/MacOS"
+          cp "${helper_binary}" "${app_contents}/MacOS/"
+          mkdir -p "${app_contents}/Library/LaunchDaemons"
+          cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         inputFiles:
           - "$(BUILT_PRODUCTS_DIR)/com.zscaler-split-tunnel.helper"
+          - "$(UNINSTALLED_PRODUCTS_DIR)/macosx/com.zscaler-split-tunnel.helper"
           - "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist"
         outputFiles:
-          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"
-          - "$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
+          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/MacOS/com.zscaler-split-tunnel.helper"
+          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         basedOnDependencyAnalysis: false
 
   ZscalerSplitTunnelHelper:
@@ -82,6 +91,24 @@ targets:
         OTHER_CODE_SIGN_FLAGS: "-i com.zscaler-split-tunnel.helper"
         SWIFT_OBJC_BRIDGING_HEADER: ZscalerSplitTunnelHelper/BridgingHeader.h
         OTHER_LDFLAGS: ["-sectcreate", "__TEXT", "__launchd_plist", "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist", "-lpcap"]
+
+  Reset Background Tasks:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ResetBackgroundTasks
+    settings:
+      base:
+        PRODUCT_NAME: ResetBackgroundTasks
+        CODE_SIGNING_ALLOWED: "NO"
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    postBuildScripts:
+      - name: "Reset Background Task Management"
+        script: |
+          "${SRCROOT}/Scripts/reset-background-tasks.sh"
+        inputFiles:
+          - "$(SRCROOT)/Scripts/reset-background-tasks.sh"
+        basedOnDependencyAnalysis: false
 
   ZscalerSplitTunnelHelperTests:
     type: bundle.unit-test

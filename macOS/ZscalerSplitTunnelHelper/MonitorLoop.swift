@@ -23,6 +23,7 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
     private var lastDefaultRouteRepairAttempt: Date?
+    private var lastIPv6DefaultRouteRepairAttempt: Date?
 
     private static let followUpCount: Int = 4
     private static let followUpInterval: TimeInterval = 6
@@ -118,6 +119,7 @@ final class MonitorLoop: @unchecked Sendable {
         queue.async { [weak self] in
             guard let self else { return }
             self.lastDefaultRouteRepairAttempt = nil
+            self.lastIPv6DefaultRouteRepairAttempt = nil
             self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
@@ -151,6 +153,7 @@ final class MonitorLoop: @unchecked Sendable {
             guard let self else { return }
             self.isRunning = false
             self.lastDefaultRouteRepairAttempt = nil
+            self.lastIPv6DefaultRouteRepairAttempt = nil
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
@@ -220,7 +223,7 @@ final class MonitorLoop: @unchecked Sendable {
                 logger.info("Direct override gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing direct overrides")
                 reloadAndApplyRoutes()
             } else {
-                _ = BroadRouteManager.removeBroadRoutes()
+                sweepBroadRoutesAndRepairIPv6Default()
                 addCustomRoutes()
                 addBypassRoutes()
             }
@@ -280,6 +283,7 @@ final class MonitorLoop: @unchecked Sendable {
         repairDefaultRouteIfNeeded(force: true)
 
         reloadAndApplyRoutes(forceReplace: true)
+        repairIPv6DefaultRouteIfNeeded(force: true)
         lastRefresh = Date()
         updateSnapshot()
         scheduleFollowUpSweeps()
@@ -301,7 +305,10 @@ final class MonitorLoop: @unchecked Sendable {
             self.pendingFollowUpSweeps -= 1
             let done = Self.followUpCount - self.pendingFollowUpSweeps
             self.logger.info("Follow-up broad-route sweep (\(done)/\(Self.followUpCount))")
-            _ = BroadRouteManager.removeBroadRoutes()
+            let removed = self.sweepBroadRoutesAndRepairIPv6Default()
+            if removed > 0 {
+                self.logger.info("Follow-up sweep removed \(removed) broad route(s)")
+            }
             self.scheduleNextFollowUpSweep()
         }
     }
@@ -411,8 +418,34 @@ final class MonitorLoop: @unchecked Sendable {
         }
     }
 
+    private func repairIPv6DefaultRouteIfNeeded(force: Bool = false) {
+        let now = Date()
+        if !force,
+           let last = lastIPv6DefaultRouteRepairAttempt,
+           now.timeIntervalSince(last) < Self.defaultRouteRepairCooldown {
+            logger.debug("Skipping IPv6 default-route repair attempt due to cooldown")
+            return
+        }
+
+        let result = IPv6DefaultRouteRepair.restoreIfMissing()
+        switch result {
+        case .defaultPresent:
+            lastIPv6DefaultRouteRepairAttempt = nil
+            logger.debug("IPv6 default route is already present")
+        case .noDefaultRouters:
+            lastIPv6DefaultRouteRepairAttempt = now
+            logger.warning("Cannot repair missing IPv6 default route: no non-tunnel NDP router available")
+        case .repaired(let gateway, let interface):
+            lastIPv6DefaultRouteRepairAttempt = nil
+            logger.info("Repaired missing IPv6 default route via \(gateway, privacy: .public) on \(interface, privacy: .public)")
+        case .failed(let errors):
+            lastIPv6DefaultRouteRepairAttempt = now
+            logger.error("Failed to repair missing IPv6 default route: \(errors.joined(separator: "; "), privacy: .public)")
+        }
+    }
+
     private func reloadAndApplyRoutes(forceReplace: Bool = false) {
-        _ = BroadRouteManager.removeBroadRoutes()
+        sweepBroadRoutesAndRepairIPv6Default()
 
         let customRoutes = configLoader.loadRoutes(
             defaultFile: ConfigPaths.defaultRoutesConfig,
@@ -483,11 +516,12 @@ final class MonitorLoop: @unchecked Sendable {
                     logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
                     continue
                 }
-                if forceReplace {
-                    _ = RouteEngine.replaceBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                } else if !RouteEngine.routeExists(destination: route, gateway: gateway, isIPv6: isIPv6) {
-                    _ = RouteEngine.addBypassRoute(destination: route, gateway: gateway, isIPv6: isIPv6)
-                }
+                _ = RouteEngine.ensureBypassRoute(
+                    destination: route,
+                    gateway: gateway,
+                    isIPv6: isIPv6,
+                    forceReplace: forceReplace
+                )
             }
         } else {
             guard let iface = RouteEngine.detectZscalerInterface() else {
@@ -499,6 +533,13 @@ final class MonitorLoop: @unchecked Sendable {
                 _ = RouteEngine.replaceRoute(destination: route, interface: iface, isIPv6: isIPv6)
             }
         }
+    }
+
+    @discardableResult
+    private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
+        let removed = BroadRouteManager.removeBroadRoutes()
+        repairIPv6DefaultRouteIfNeeded(force: removed > 0)
+        return removed
     }
 
     private func configHasChanged() -> Bool {

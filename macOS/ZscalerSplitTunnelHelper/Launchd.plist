@@ -4,8 +4,12 @@
 <dict>
     <key>Label</key>
     <string>com.zscaler-split-tunnel.helper</string>
+    <key>AssociatedBundleIdentifiers</key>
+    <array>
+        <string>com.zscaler-split-tunnel.app</string>
+    </array>
     <key>BundleProgram</key>
-    <string>Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper</string>
+    <string>Contents/MacOS/com.zscaler-split-tunnel.helper</string>
     <key>MachServices</key>
     <dict>
         <key>com.zscaler-split-tunnel.helper</key>
