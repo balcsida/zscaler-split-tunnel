@@ -92,6 +92,24 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ZscalerSplitTunnelHelper/BridgingHeader.h
         OTHER_LDFLAGS: ["-sectcreate", "__TEXT", "__launchd_plist", "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist", "-lpcap"]
 
+  Reset Background Tasks:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ResetBackgroundTasks
+    settings:
+      base:
+        PRODUCT_NAME: ResetBackgroundTasks
+        CODE_SIGNING_ALLOWED: "NO"
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    postBuildScripts:
+      - name: "Reset Background Task Management"
+        script: |
+          "${SRCROOT}/Scripts/reset-background-tasks.sh"
+        inputFiles:
+          - "$(SRCROOT)/Scripts/reset-background-tasks.sh"
+        basedOnDependencyAnalysis: false
+
   ZscalerSplitTunnelHelperTests:
     type: bundle.unit-test
     platform: macOS

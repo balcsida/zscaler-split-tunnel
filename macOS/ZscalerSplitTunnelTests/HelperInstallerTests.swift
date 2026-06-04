@@ -63,6 +63,39 @@ final class HelperInstallerTests: XCTestCase {
         )
     }
 
+    func testProjectDefinesManualBackgroundTaskResetAutomation() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let scriptURL = projectRoot.appendingPathComponent("Scripts/reset-background-tasks.sh")
+        XCTAssertTrue(
+            FileManager.default.isExecutableFile(atPath: scriptURL.path),
+            "The reset script should be executable so Xcode can run it directly."
+        )
+
+        let script = try String(contentsOf: scriptURL, encoding: .utf8)
+        XCTAssertTrue(script.contains("/usr/bin/sfltool resetbtm"))
+        XCTAssertTrue(script.contains("x-apple.systempreferences:com.apple.LoginItems-Settings.extension"))
+
+        let generator = try String(
+            contentsOf: projectRoot.appendingPathComponent("project.yml"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(generator.contains("Reset Background Tasks:"))
+        XCTAssertTrue(generator.contains("Scripts/reset-background-tasks.sh"))
+        XCTAssertTrue(generator.contains("ENABLE_USER_SCRIPT_SANDBOXING: \"NO\""))
+
+        let project = try String(
+            contentsOf: projectRoot.appendingPathComponent("ZscalerSplitTunnel.xcodeproj/project.pbxproj"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(project.contains("Reset Background Tasks"))
+        XCTAssertTrue(project.contains("Scripts/reset-background-tasks.sh"))
+        XCTAssertTrue(project.contains("ENABLE_USER_SCRIPT_SANDBOXING = NO;"))
+    }
+
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
         let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered, .enabled])
         let sleeps = SleepRecorder()
