@@ -17,6 +17,52 @@ final class HelperInstallerTests: XCTestCase {
         XCTAssertTrue(associatedBundleIDs.contains(AppConstants.appBundleID))
     }
 
+    func testLaunchDaemonPlistUsesSMAppServiceHelperExecutablePath() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let plistURL = projectRoot.appendingPathComponent("ZscalerSplitTunnelHelper/Launchd.plist")
+        let data = try Data(contentsOf: plistURL)
+        let plist = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any]
+        )
+
+        XCTAssertEqual(
+            plist["BundleProgram"] as? String,
+            "Contents/MacOS/\(AppConstants.helperBundleID)"
+        )
+    }
+
+    func testAppTargetCopiesHelperToLaunchDaemonBundleProgramPath() throws {
+        let testFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let projectFile = projectRoot.appendingPathComponent("ZscalerSplitTunnel.xcodeproj/project.pbxproj")
+        let project = try String(contentsOf: projectFile, encoding: .utf8)
+
+        XCTAssertTrue(
+            project.contains("Contents/MacOS/com.zscaler-split-tunnel.helper"),
+            "The app target must copy the helper to the BundleProgram path."
+        )
+        XCTAssertFalse(
+            project.contains("Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"),
+            "SMAppService should launch the helper from Contents/MacOS, matching Apple's daemon packaging guidance."
+        )
+
+        let generatorFile = projectRoot.appendingPathComponent("project.yml")
+        let generator = try String(contentsOf: generatorFile, encoding: .utf8)
+        XCTAssertTrue(
+            generator.contains("Contents/MacOS/com.zscaler-split-tunnel.helper"),
+            "The generated Xcode project and project.yml must agree on the helper path."
+        )
+        XCTAssertFalse(
+            generator.contains("Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"),
+            "Regenerating the Xcode project must not restore the old helper path."
+        )
+    }
+
     func testReinstallWaitsForOldRegistrationToDisappearBeforeRegistering() async throws {
         let service = FakeHelperService(statuses: [.enabled, .enabled, .notRegistered, .enabled])
         let sleeps = SleepRecorder()

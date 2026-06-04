@@ -481,12 +481,12 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/MacOS/com.zscaler-split-tunnel.helper",
 				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\n\napp_contents=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents\"\nhelper_binary=\"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\"\nif [ ! -f \"${helper_binary}\" ]; then\n  helper_binary=\"${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper\"\nfi\n\nmkdir -p \"${app_contents}/Library/LaunchServices\"\ncp \"${helper_binary}\" \"${app_contents}/Library/LaunchServices/\"\nmkdir -p \"${app_contents}/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
+			shellScript = "set -eu\n\napp_contents=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents\"\nhelper_binary=\"${BUILT_PRODUCTS_DIR}/com.zscaler-split-tunnel.helper\"\nif [ ! -f \"${helper_binary}\" ]; then\n  helper_binary=\"${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper\"\nfi\n\nmkdir -p \"${app_contents}/MacOS\"\ncp \"${helper_binary}\" \"${app_contents}/MacOS/\"\nmkdir -p \"${app_contents}/Library/LaunchDaemons\"\ncp \"${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist\" \"${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

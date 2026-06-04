@@ -266,7 +266,7 @@ final class AppState {
 
     private func helperLaunchSigningProblem() -> String? {
         let helperURL = Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Library/LaunchServices")
+            .appendingPathComponent("Contents/MacOS")
             .appendingPathComponent(AppConstants.helperBundleID)
 
         guard FileManager.default.isExecutableFile(atPath: helperURL.path) else {

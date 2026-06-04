@@ -56,8 +56,8 @@ targets:
             helper_binary="${UNINSTALLED_PRODUCTS_DIR}/macosx/com.zscaler-split-tunnel.helper"
           fi
 
-          mkdir -p "${app_contents}/Library/LaunchServices"
-          cp "${helper_binary}" "${app_contents}/Library/LaunchServices/"
+          mkdir -p "${app_contents}/MacOS"
+          cp "${helper_binary}" "${app_contents}/MacOS/"
           mkdir -p "${app_contents}/Library/LaunchDaemons"
           cp "${SRCROOT}/ZscalerSplitTunnelHelper/Launchd.plist" "${app_contents}/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         inputFiles:
@@ -65,7 +65,7 @@ targets:
           - "$(UNINSTALLED_PRODUCTS_DIR)/macosx/com.zscaler-split-tunnel.helper"
           - "$(SRCROOT)/ZscalerSplitTunnelHelper/Launchd.plist"
         outputFiles:
-          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchServices/com.zscaler-split-tunnel.helper"
+          - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/MacOS/com.zscaler-split-tunnel.helper"
           - "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Library/LaunchDaemons/com.zscaler-split-tunnel.helper.plist"
         basedOnDependencyAnalysis: false
 
