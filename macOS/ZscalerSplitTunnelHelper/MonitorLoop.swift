@@ -22,6 +22,7 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
+    private var lastStaleRouteCleanup: HelperStatus.RouteCleanupStatus?
     private var lastDefaultRouteRepairAttempt: Date?
     private var lastIPv6DefaultRouteRepairAttempt: Date?
 
@@ -62,6 +63,7 @@ final class MonitorLoop: @unchecked Sendable {
         let officeWifiGateway: String?
         let isRunning: Bool
         let interval: Int
+        let staleRouteCleanup: HelperStatus.RouteCleanupStatus?
     }
 
     /// Returns a consistent snapshot of all status properties.
@@ -80,7 +82,7 @@ final class MonitorLoop: @unchecked Sendable {
             allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
             customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
             officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
-            isRunning: false, interval: 0
+            isRunning: false, interval: 0, staleRouteCleanup: nil
         ))
     }
 
@@ -99,7 +101,8 @@ final class MonitorLoop: @unchecked Sendable {
             officeSwitchName: officeSwitchName,
             officeWifiGateway: officeDetector.wifiGateway,
             isRunning: isRunning,
-            interval: interval
+            interval: interval,
+            staleRouteCleanup: lastStaleRouteCleanup
         )
         snapshotLock.lock()
         _cachedSnapshot = snapshot
@@ -501,9 +504,18 @@ final class MonitorLoop: @unchecked Sendable {
                 logger.info("Routing \(routes.count) direct overrides via WiFi gateway \(gateway)")
             }
 
-            lastBypassGateway = gateway
-
             let gatewayIsIPv6 = IPValidator.isIPv6(gateway)
+            if !gatewayIsIPv6, lastBypassGateway != gateway {
+                let removed = RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: gateway)
+                if removed > 0 {
+                    lastStaleRouteCleanup = HelperStatus.RouteCleanupStatus(
+                        removedCount: removed,
+                        gateway: gateway,
+                        date: Date()
+                    )
+                }
+            }
+            lastBypassGateway = gateway
 
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)

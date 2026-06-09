@@ -118,7 +118,8 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
                     allEthernetInterfaces: snapshot.allEthernetInterfaces,
                     wifiInterface: snapshot.wifiInterface,
                     errors: snapshot.captureErrors
-                )
+                ),
+                staleRouteCleanup: snapshot.staleRouteCleanup
             )
 
             do {

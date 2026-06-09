@@ -174,6 +174,62 @@ enum RouteEngine {
         flushStaleHostRoutes(family: "inet6", suffix: "/128", familyFlag: "-inet6")
     }
 
+    @discardableResult
+    static func flushStaleGatewayHostRoutes(expectedGateway: String) -> Int {
+        flushStaleGatewayHostRoutes(
+            expectedGateway: expectedGateway,
+            netstatOutput: {
+                let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", "inet"])
+                return output
+            },
+            deleteHostRoute: { host in
+                let result = ShellRunner.runCapturingStderr("/sbin/route",
+                    arguments: ["-n", "delete", "-host", host])
+                if result.exitCode != 0 {
+                    logger.debug("Failed to delete stale gateway host route \(host, privacy: .public): \(result.stderr, privacy: .public)")
+                }
+                return result.exitCode == 0
+            }
+        )
+    }
+
+    static func flushStaleGatewayHostRoutes(
+        expectedGateway: String,
+        netstatOutput: () -> String?,
+        deleteHostRoute: (String) -> Bool
+    ) -> Int {
+        guard !expectedGateway.isEmpty, let output = netstatOutput() else { return 0 }
+
+        var flushed = 0
+        for line in output.components(separatedBy: "\n") {
+            let cols = line.split(separator: " ", omittingEmptySubsequences: true)
+            // netstat columns: Destination Gateway Flags Netif [Expire]
+            guard cols.count >= 4 else { continue }
+            let destination = String(cols[0])
+            let gateway = String(cols[1])
+            let flags = String(cols[2])
+            let netif = String(cols[3])
+
+            guard let host = hostAddress(fromIPv4HostRoute: destination),
+                  gateway != expectedGateway,
+                  flags.contains("G"),
+                  !netif.hasPrefix("utun"),
+                  !isLinkLayerGateway(gateway),
+                  isIPv4Address(gateway)
+            else { continue }
+
+            if deleteHostRoute(host) {
+                logger.info("Deleted stale direct host route \(host, privacy: .public) via old gateway \(gateway, privacy: .public); expected \(expectedGateway, privacy: .public)")
+                flushed += 1
+            }
+        }
+
+        if flushed > 0 {
+            logger.info("Deleted \(flushed) stale direct host route(s) via mismatched gateway")
+        }
+        return flushed
+    }
+
     private static func flushStaleHostRoutes(family: String, suffix: String, familyFlag: String?) {
         let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", family])
         guard let output else { return }
@@ -293,6 +349,21 @@ enum RouteEngine {
     private static func isRouteAlreadyPresentError(stdout: String, stderr: String) -> Bool {
         let message = "\(stdout)\n\(stderr)".lowercased()
         return message.contains("file exists") || message.contains("already in table")
+    }
+
+    private static func hostAddress(fromIPv4HostRoute destination: String) -> String? {
+        guard destination.hasSuffix("/32") else { return nil }
+        let host = String(destination.dropLast(3))
+        return isIPv4Address(host) ? host : nil
+    }
+
+    private static func isIPv4Address(_ value: String) -> Bool {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return false }
+        return parts.allSatisfy { part in
+            guard let octet = Int(part), octet >= 0, octet <= 255 else { return false }
+            return String(octet) == part
+        }
     }
 
     /// Returns true if `gateway` is a link-layer address (`link#N` or a MAC)

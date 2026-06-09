@@ -188,6 +188,36 @@ final class DefaultRouteRepairTests: XCTestCase {
 
         XCTAssertEqual(result, .defaultPresent)
     }
+
+    func testRouteResetFlushesStaleHostRoutesForCurrentGateway() {
+        var flushedGateways: [String] = []
+
+        let removed = RouteReset.flushStaleGatewayHostRoutesIfPossible(
+            getDefaultGateway: { "192.168.101.1" },
+            flushStaleRoutes: { gateway in
+                flushedGateways.append(gateway)
+                return 12
+            }
+        )
+
+        XCTAssertEqual(removed, 12)
+        XCTAssertEqual(flushedGateways, ["192.168.101.1"])
+    }
+
+    func testRouteResetSkipsStaleHostRouteFlushWithoutUsableGateway() {
+        var flushedGateways: [String] = []
+
+        let removed = RouteReset.flushStaleGatewayHostRoutesIfPossible(
+            getDefaultGateway: { "link#22" },
+            flushStaleRoutes: { gateway in
+                flushedGateways.append(gateway)
+                return 12
+            }
+        )
+
+        XCTAssertEqual(removed, 0)
+        XCTAssertEqual(flushedGateways, [])
+    }
 }
 
 final class RouteEngineBypassRouteTests: XCTestCase {
@@ -261,5 +291,34 @@ final class RouteEngineBypassRouteTests: XCTestCase {
 
         XCTAssertTrue(result)
         XCTAssertEqual(operations, ["add"])
+    }
+
+    func testFlushesWrongGatewayDirectHostRoutes() {
+        let netstat = """
+        Routing tables
+
+        Internet:
+        Destination        Gateway            Flags               Netif Expire
+        default            192.168.101.1      UGScg                 en0
+        3.7.35/25          192.168.0.1        UGSc                  en0
+        10.48/16           100.64.0.1         UGSc                utun4
+        104.18.24.23/32    192.168.101.1      UGSc                  en0
+        140.82.121.5/32    192.168.0.1        UGSc                  en0
+        142.250.203.138/32 192.168.0.1        UGSc                  en0
+        185.199.108.133/32 link#14            UHLWI                 en0
+        """
+        var deletedHosts: [String] = []
+
+        let flushed = RouteEngine.flushStaleGatewayHostRoutes(
+            expectedGateway: "192.168.101.1",
+            netstatOutput: { netstat },
+            deleteHostRoute: { host in
+                deletedHosts.append(host)
+                return true
+            }
+        )
+
+        XCTAssertEqual(flushed, 2)
+        XCTAssertEqual(deletedHosts, ["140.82.121.5", "142.250.203.138"])
     }
 }
