@@ -506,7 +506,10 @@ final class MonitorLoop: @unchecked Sendable {
 
             let gatewayIsIPv6 = IPValidator.isIPv6(gateway)
             if !gatewayIsIPv6, lastBypassGateway != gateway {
-                let removed = RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: gateway)
+                let removed = RouteEngine.flushStaleGatewayHostRoutes(
+                    expectedGateway: gateway,
+                    ownedDestinations: routes
+                )
                 if removed > 0 {
                     lastStaleRouteCleanup = HelperStatus.RouteCleanupStatus(
                         removedCount: removed,

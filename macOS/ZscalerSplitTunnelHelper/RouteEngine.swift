@@ -175,9 +175,13 @@ enum RouteEngine {
     }
 
     @discardableResult
-    static func flushStaleGatewayHostRoutes(expectedGateway: String) -> Int {
+    static func flushStaleGatewayHostRoutes(
+        expectedGateway: String,
+        ownedDestinations: [String]? = nil
+    ) -> Int {
         flushStaleGatewayHostRoutes(
             expectedGateway: expectedGateway,
+            ownedDestinations: ownedDestinations,
             netstatOutput: {
                 let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", "inet"])
                 return output
@@ -195,10 +199,12 @@ enum RouteEngine {
 
     static func flushStaleGatewayHostRoutes(
         expectedGateway: String,
+        ownedDestinations: [String]? = nil,
         netstatOutput: () -> String?,
         deleteHostRoute: (String) -> Bool
     ) -> Int {
         guard !expectedGateway.isEmpty, let output = netstatOutput() else { return 0 }
+        let ownedHosts = ownedDestinations.map(ownedIPv4HostRoutes)
 
         var flushed = 0
         for line in output.components(separatedBy: "\n") {
@@ -212,6 +218,7 @@ enum RouteEngine {
 
             guard let host = hostAddress(fromIPv4HostRoute: destination),
                   gateway != expectedGateway,
+                  ownedHosts?.contains(host) ?? true,
                   flags.contains("G"),
                   !netif.hasPrefix("utun"),
                   !isLinkLayerGateway(gateway),
@@ -354,7 +361,36 @@ enum RouteEngine {
     private static func hostAddress(fromIPv4HostRoute destination: String) -> String? {
         guard destination.hasSuffix("/32") else { return nil }
         let host = String(destination.dropLast(3))
-        return isIPv4Address(host) ? host : nil
+        if isIPv4Address(host) {
+            return host
+        }
+        return expandedAbbreviatedIPv4Host(host)
+    }
+
+    private static func ownedIPv4HostRoutes(from destinations: [String]) -> Set<String> {
+        Set(destinations.compactMap { destination in
+            if destination.hasSuffix("/32") {
+                return hostAddress(fromIPv4HostRoute: destination)
+            }
+            if !destination.contains("/"), isIPv4Address(destination) {
+                return destination
+            }
+            return nil
+        })
+    }
+
+    private static func expandedAbbreviatedIPv4Host(_ host: String) -> String? {
+        var parts = host.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        guard (1...3).contains(parts.count) else { return nil }
+        guard parts.allSatisfy({ part in
+            guard let octet = Int(part), octet >= 0, octet <= 255 else { return false }
+            return String(octet) == part
+        }) else { return nil }
+
+        while parts.count < 4 {
+            parts.append("0")
+        }
+        return parts.joined(separator: ".")
     }
 
     private static func isIPv4Address(_ value: String) -> Bool {
