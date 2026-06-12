@@ -203,7 +203,7 @@ enum RouteEngine {
         netstatOutput: () -> String?,
         deleteHostRoute: (String) -> Bool
     ) -> Int {
-        guard !expectedGateway.isEmpty, let output = netstatOutput() else { return 0 }
+        guard isIPv4Address(expectedGateway), let output = netstatOutput() else { return 0 }
         let ownedHosts = ownedDestinations.map(ownedIPv4HostRoutes)
 
         var flushed = 0

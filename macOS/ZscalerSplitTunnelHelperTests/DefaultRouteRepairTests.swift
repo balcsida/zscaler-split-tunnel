@@ -372,4 +372,29 @@ final class RouteEngineBypassRouteTests: XCTestCase {
         XCTAssertEqual(flushed, 1)
         XCTAssertEqual(deletedHosts, ["34.128.128.0"])
     }
+
+    func testSkipsGatewayHostRouteFlushWhenExpectedGatewayIsNotIPv4() {
+        let netstat = """
+        Routing tables
+
+        Internet:
+        Destination        Gateway            Flags               Netif Expire
+        default            link#22            UGScg                 en0
+        140.82.121.5/32    192.168.0.1        UGSc                  en0
+        """
+        var deletedHosts: [String] = []
+
+        let flushed = RouteEngine.flushStaleGatewayHostRoutes(
+            expectedGateway: "link#22",
+            ownedDestinations: ["140.82.121.5/32"],
+            netstatOutput: { netstat },
+            deleteHostRoute: { host in
+                deletedHosts.append(host)
+                return true
+            }
+        )
+
+        XCTAssertEqual(flushed, 0)
+        XCTAssertEqual(deletedHosts, [])
+    }
 }
