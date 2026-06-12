@@ -23,6 +23,7 @@ final class AppState {
     /// new daemon and the first few XPC round-trips are expected to fail.
     private var suppressHelperErrorsUntil: Date?
     private var pendingHelperInstallFailure: String?
+    private var lastNotifiedStaleRouteCleanup: Date?
 
     init() {
         // Reflect persisted SMAppService registration state immediately so the UI is correct before
@@ -225,6 +226,7 @@ final class AppState {
             errorMessage = nil
             suppressHelperErrorsUntil = nil
             pendingHelperInstallFailure = nil
+            notifyIfNeeded(staleRouteCleanup: status.staleRouteCleanup)
 
             // Auto-start monitoring only when Zscaler is actually running. Otherwise the
             // poll would resurrect monitoring immediately after the user kills Zscaler,
@@ -262,6 +264,13 @@ final class AppState {
                 break
             }
         }
+    }
+
+    private func notifyIfNeeded(staleRouteCleanup cleanup: HelperStatus.RouteCleanupStatus?) {
+        guard let cleanup, cleanup.removedCount > 0 else { return }
+        guard cleanup.date != lastNotifiedStaleRouteCleanup else { return }
+        lastNotifiedStaleRouteCleanup = cleanup.date
+        RecoveryNotificationService.notifyStaleRoutesRepaired(cleanup)
     }
 
     private func helperLaunchSigningProblem() -> String? {

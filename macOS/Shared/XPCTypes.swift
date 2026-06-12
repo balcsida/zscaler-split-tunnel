@@ -24,12 +24,19 @@ struct HelperStatus: Codable, Sendable {
     var officeWifiGateway: String?
     var discoveredDevice: DiscoveredDeviceInfo?
     var captureStatus: CaptureStatus?
+    var staleRouteCleanup: RouteCleanupStatus?
 
     struct CaptureStatus: Codable, Sendable {
         var activeInterfaces: [String]
         var allEthernetInterfaces: [String]
         var wifiInterface: String?
         var errors: [String]
+    }
+
+    struct RouteCleanupStatus: Codable, Equatable, Sendable {
+        var removedCount: Int
+        var gateway: String
+        var date: Date
     }
 
     struct BroadRouteStatus: Codable, Sendable {

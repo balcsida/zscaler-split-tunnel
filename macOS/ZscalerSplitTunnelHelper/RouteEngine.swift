@@ -174,6 +174,69 @@ enum RouteEngine {
         flushStaleHostRoutes(family: "inet6", suffix: "/128", familyFlag: "-inet6")
     }
 
+    @discardableResult
+    static func flushStaleGatewayHostRoutes(
+        expectedGateway: String,
+        ownedDestinations: [String]? = nil
+    ) -> Int {
+        flushStaleGatewayHostRoutes(
+            expectedGateway: expectedGateway,
+            ownedDestinations: ownedDestinations,
+            netstatOutput: {
+                let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", "inet"])
+                return output
+            },
+            deleteHostRoute: { host in
+                let result = ShellRunner.runCapturingStderr("/sbin/route",
+                    arguments: ["-n", "delete", "-host", host])
+                if result.exitCode != 0 {
+                    logger.debug("Failed to delete stale gateway host route \(host, privacy: .public): \(result.stderr, privacy: .public)")
+                }
+                return result.exitCode == 0
+            }
+        )
+    }
+
+    static func flushStaleGatewayHostRoutes(
+        expectedGateway: String,
+        ownedDestinations: [String]? = nil,
+        netstatOutput: () -> String?,
+        deleteHostRoute: (String) -> Bool
+    ) -> Int {
+        guard isIPv4Address(expectedGateway), let output = netstatOutput() else { return 0 }
+        let ownedHosts = ownedDestinations.map(ownedIPv4HostRoutes)
+
+        var flushed = 0
+        for line in output.components(separatedBy: "\n") {
+            let cols = line.split(separator: " ", omittingEmptySubsequences: true)
+            // netstat columns: Destination Gateway Flags Netif [Expire]
+            guard cols.count >= 4 else { continue }
+            let destination = String(cols[0])
+            let gateway = String(cols[1])
+            let flags = String(cols[2])
+            let netif = String(cols[3])
+
+            guard let host = hostAddress(fromIPv4HostRoute: destination),
+                  gateway != expectedGateway,
+                  ownedHosts?.contains(host) ?? true,
+                  flags.contains("G"),
+                  !netif.hasPrefix("utun"),
+                  !isLinkLayerGateway(gateway),
+                  isIPv4Address(gateway)
+            else { continue }
+
+            if deleteHostRoute(host) {
+                logger.info("Deleted stale direct host route \(host, privacy: .public) via old gateway \(gateway, privacy: .public); expected \(expectedGateway, privacy: .public)")
+                flushed += 1
+            }
+        }
+
+        if flushed > 0 {
+            logger.info("Deleted \(flushed) stale direct host route(s) via mismatched gateway")
+        }
+        return flushed
+    }
+
     private static func flushStaleHostRoutes(family: String, suffix: String, familyFlag: String?) {
         let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", family])
         guard let output else { return }
@@ -293,6 +356,50 @@ enum RouteEngine {
     private static func isRouteAlreadyPresentError(stdout: String, stderr: String) -> Bool {
         let message = "\(stdout)\n\(stderr)".lowercased()
         return message.contains("file exists") || message.contains("already in table")
+    }
+
+    private static func hostAddress(fromIPv4HostRoute destination: String) -> String? {
+        guard destination.hasSuffix("/32") else { return nil }
+        let host = String(destination.dropLast(3))
+        if isIPv4Address(host) {
+            return host
+        }
+        return expandedAbbreviatedIPv4Host(host)
+    }
+
+    private static func ownedIPv4HostRoutes(from destinations: [String]) -> Set<String> {
+        Set(destinations.compactMap { destination in
+            if destination.hasSuffix("/32") {
+                return hostAddress(fromIPv4HostRoute: destination)
+            }
+            if !destination.contains("/"), isIPv4Address(destination) {
+                return destination
+            }
+            return nil
+        })
+    }
+
+    private static func expandedAbbreviatedIPv4Host(_ host: String) -> String? {
+        var parts = host.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        guard (1...3).contains(parts.count) else { return nil }
+        guard parts.allSatisfy({ part in
+            guard let octet = Int(part), octet >= 0, octet <= 255 else { return false }
+            return String(octet) == part
+        }) else { return nil }
+
+        while parts.count < 4 {
+            parts.append("0")
+        }
+        return parts.joined(separator: ".")
+    }
+
+    private static func isIPv4Address(_ value: String) -> Bool {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return false }
+        return parts.allSatisfy { part in
+            guard let octet = Int(part), octet >= 0, octet <= 255 else { return false }
+            return String(octet) == part
+        }
     }
 
     /// Returns true if `gateway` is a link-layer address (`link#N` or a MAC)

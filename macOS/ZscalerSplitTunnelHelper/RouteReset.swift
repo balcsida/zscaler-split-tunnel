@@ -9,9 +9,9 @@ import os
 ///    utun iface is still up), so IPv6 has no usable global default and Happy
 ///    Eyeballs requests (e.g. claude.ai) fail with ERR_ADDRESS_INVALID.
 /// 2. Direct override `/32`s pinned to a gateway from a previous network (e.g. an office
-///    Wi-Fi gateway) persist after the user moves to a new network. Flush
-///    removes these; the monitor re-adds them through the current gateway on
-///    its next cycle.
+///    Wi-Fi gateway) persist after the user moves to a new network. Flush does
+///    not reliably remove every cloned host route, so after DHCP restores the
+///    current gateway we explicitly delete stale host routes via other gateways.
 ///
 /// Recovery runs four passes, in order:
 ///   1. Explicitly delete any default routes (v4 and v6) scoped to `utun*`.
@@ -21,7 +21,8 @@ import os
 ///      the IPv4 default route — without this, Zscaler can't even reach its
 ///      brokers and traffic to anything outside the LAN dies with
 ///      "Network is unreachable".
-///   4. Cycle IPv6 config on each active en* service (`-setv6off` /
+///   4. Delete any remaining direct `/32`s via stale gateways.
+///   5. Cycle IPv6 config on each active en* service (`-setv6off` /
 ///      `-setv6automatic`). Forces a Router Solicitation and fresh RA
 ///      processing so the IPv6 default reinstalls via en0.
 ///
@@ -35,6 +36,7 @@ enum RouteReset {
         let flushAttempts: Int
         let bouncedServices: [String]
         let clearedTunnelDefaults: [String]
+        let staleGatewayRoutesRemoved: Int
         let errors: [String]
     }
 
@@ -102,6 +104,8 @@ enum RouteReset {
             Thread.sleep(forTimeInterval: 0.5)
         }
 
+        let staleGatewayRoutesRemoved = flushStaleGatewayHostRoutesIfPossible()
+
         // Belt-and-suspenders: SystemConfiguration sometimes doesn't reinstall
         // the global IPv6 default after `-setv6automatic`, particularly when
         // stale utun static router entries (`flags=IST`) remain in the NDP
@@ -111,13 +115,27 @@ enum RouteReset {
             logger.info("Installed IPv6 default route from NDP cache")
         }
 
-        logger.info("Route reset complete (cleared \(clearedTunnelDefaults.count, privacy: .public) tunnel defaults, cycled \(bouncedServices.count, privacy: .public) services, \(errors.count, privacy: .public) errors)")
+        logger.info("Route reset complete (cleared \(clearedTunnelDefaults.count, privacy: .public) tunnel defaults, removed \(staleGatewayRoutesRemoved, privacy: .public) stale gateway host routes, cycled \(bouncedServices.count, privacy: .public) services, \(errors.count, privacy: .public) errors)")
         return Result(
             flushAttempts: flushRounds,
             bouncedServices: bouncedServices,
             clearedTunnelDefaults: clearedTunnelDefaults,
+            staleGatewayRoutesRemoved: staleGatewayRoutesRemoved,
             errors: errors
         )
+    }
+
+    static func flushStaleGatewayHostRoutesIfPossible(
+        getDefaultGateway: () -> String? = { RouteEngine.getDefaultGateway() },
+        flushStaleRoutes: (String) -> Int = { RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: $0) }
+    ) -> Int {
+        guard let gateway = getDefaultGateway(),
+              DefaultRouteRepair.isUsableIPv4Gateway(gateway)
+        else {
+            logger.info("Skipping stale gateway host-route cleanup: no usable IPv4 default gateway")
+            return 0
+        }
+        return flushStaleRoutes(gateway)
     }
 
     // MARK: - IPv6 default rescue
