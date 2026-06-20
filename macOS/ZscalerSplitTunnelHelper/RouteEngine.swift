@@ -201,13 +201,9 @@ enum RouteEngine {
     }
 
     @discardableResult
-    static func flushStaleGatewayHostRoutes(
-        expectedGateway: String,
-        ownedDestinations: [String]? = nil
-    ) -> Int {
+    static func flushStaleGatewayHostRoutes(expectedGateway: String) -> Int {
         flushStaleGatewayHostRoutes(
             expectedGateway: expectedGateway,
-            ownedDestinations: ownedDestinations,
             netstatOutput: {
                 let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", "inet"])
                 return output
@@ -225,12 +221,10 @@ enum RouteEngine {
 
     static func flushStaleGatewayHostRoutes(
         expectedGateway: String,
-        ownedDestinations: [String]? = nil,
         netstatOutput: () -> String?,
         deleteHostRoute: (String) -> Bool
     ) -> Int {
         guard isIPv4Address(expectedGateway), let output = netstatOutput() else { return 0 }
-        let ownedHosts = ownedDestinations.map(ownedIPv4HostRoutes)
 
         var flushed = 0
         for line in output.components(separatedBy: "\n") {
@@ -244,7 +238,6 @@ enum RouteEngine {
 
             guard let host = hostAddress(fromIPv4HostRoute: destination),
                   gateway != expectedGateway,
-                  ownedHosts?.contains(host) ?? true,
                   flags.contains("G"),
                   !netif.hasPrefix("utun"),
                   !isLinkLayerGateway(gateway),
@@ -391,18 +384,6 @@ enum RouteEngine {
             return host
         }
         return expandedAbbreviatedIPv4Host(host)
-    }
-
-    private static func ownedIPv4HostRoutes(from destinations: [String]) -> Set<String> {
-        Set(destinations.compactMap { destination in
-            if destination.hasSuffix("/32") {
-                return hostAddress(fromIPv4HostRoute: destination)
-            }
-            if !destination.contains("/"), isIPv4Address(destination) {
-                return destination
-            }
-            return nil
-        })
     }
 
     private static func expandedAbbreviatedIPv4Host(_ host: String) -> String? {

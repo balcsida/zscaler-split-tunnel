@@ -322,7 +322,7 @@ final class RouteEngineBypassRouteTests: XCTestCase {
         XCTAssertEqual(deletedHosts, ["140.82.121.5", "142.250.203.138"])
     }
 
-    func testOnlyFlushesConfiguredBypassHostRoutes() {
+    func testFlushesWrongGatewayHostRoutesEvenWhenNotConfiguredBypassRoutes() {
         let netstat = """
         Routing tables
 
@@ -336,7 +336,6 @@ final class RouteEngineBypassRouteTests: XCTestCase {
 
         let flushed = RouteEngine.flushStaleGatewayHostRoutes(
             expectedGateway: "192.168.101.1",
-            ownedDestinations: ["140.82.121.5/32"],
             netstatOutput: { netstat },
             deleteHostRoute: { host in
                 deletedHosts.append(host)
@@ -344,11 +343,11 @@ final class RouteEngineBypassRouteTests: XCTestCase {
             }
         )
 
-        XCTAssertEqual(flushed, 1)
-        XCTAssertEqual(deletedHosts, ["140.82.121.5"])
+        XCTAssertEqual(flushed, 2)
+        XCTAssertEqual(deletedHosts, ["140.82.121.5", "142.250.203.138"])
     }
 
-    func testFlushesAbbreviatedConfiguredBypassHostRoutes() {
+    func testFlushesAbbreviatedWrongGatewayHostRoutes() {
         let netstat = """
         Routing tables
 
@@ -361,7 +360,6 @@ final class RouteEngineBypassRouteTests: XCTestCase {
 
         let flushed = RouteEngine.flushStaleGatewayHostRoutes(
             expectedGateway: "192.168.101.1",
-            ownedDestinations: ["34.128.128.0/32"],
             netstatOutput: { netstat },
             deleteHostRoute: { host in
                 deletedHosts.append(host)
@@ -386,7 +384,6 @@ final class RouteEngineBypassRouteTests: XCTestCase {
 
         let flushed = RouteEngine.flushStaleGatewayHostRoutes(
             expectedGateway: "link#22",
-            ownedDestinations: ["140.82.121.5/32"],
             netstatOutput: { netstat },
             deleteHostRoute: { host in
                 deletedHosts.append(host)

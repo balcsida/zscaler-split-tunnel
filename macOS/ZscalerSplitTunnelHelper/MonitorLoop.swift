@@ -513,10 +513,7 @@ final class MonitorLoop: @unchecked Sendable {
             let ipv6Gateway = gatewayIsIPv6 ? nil : RouteEngine.getIPv6DefaultGateway()
             let forceReplaceV6 = forceReplace || (ipv6Gateway != nil && ipv6Gateway != lastBypassGatewayV6)
             if !gatewayIsIPv6, lastBypassGateway != gateway {
-                let removed = RouteEngine.flushStaleGatewayHostRoutes(
-                    expectedGateway: gateway,
-                    ownedDestinations: routes
-                )
+                let removed = RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: gateway)
                 if removed > 0 {
                     lastStaleRouteCleanup = HelperStatus.RouteCleanupStatus(
                         removedCount: removed,
