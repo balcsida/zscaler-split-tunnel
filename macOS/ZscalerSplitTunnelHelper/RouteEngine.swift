@@ -73,6 +73,15 @@ enum RouteEngine {
         )
     }
 
+    static func shouldForceReplaceBypassRoutes(
+        forceReplace: Bool,
+        gatewayIsIPv6: Bool,
+        lastBypassGateway: String?,
+        gateway: String
+    ) -> Bool {
+        forceReplace || (!gatewayIsIPv6 && lastBypassGateway != gateway)
+    }
+
     static func ensureBypassRoute(
         destination: String,
         gateway: String,

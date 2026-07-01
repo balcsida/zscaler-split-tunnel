@@ -394,4 +394,20 @@ final class RouteEngineBypassRouteTests: XCTestCase {
         XCTAssertEqual(flushed, 0)
         XCTAssertEqual(deletedHosts, [])
     }
+
+    func testForceReplacesDirectOverridesWhenGatewayIsFirstSeen() {
+        XCTAssertTrue(RouteEngine.shouldForceReplaceBypassRoutes(
+            forceReplace: false,
+            gatewayIsIPv6: false,
+            lastBypassGateway: nil as String?,
+            gateway: "192.168.0.1"
+        ))
+
+        XCTAssertFalse(RouteEngine.shouldForceReplaceBypassRoutes(
+            forceReplace: false,
+            gatewayIsIPv6: false,
+            lastBypassGateway: "192.168.0.1",
+            gateway: "192.168.0.1"
+        ))
+    }
 }
