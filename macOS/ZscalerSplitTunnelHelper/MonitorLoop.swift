@@ -512,6 +512,12 @@ final class MonitorLoop: @unchecked Sendable {
             // whenever Happy Eyeballs prefers IPv6.
             let ipv6Gateway = gatewayIsIPv6 ? nil : RouteEngine.getIPv6DefaultGateway()
             let forceReplaceV6 = forceReplace || (ipv6Gateway != nil && ipv6Gateway != lastBypassGatewayV6)
+            let shouldForceReplaceBypassRoutes = RouteEngine.shouldForceReplaceBypassRoutes(
+                forceReplace: forceReplace,
+                gatewayIsIPv6: gatewayIsIPv6,
+                lastBypassGateway: lastBypassGateway,
+                gateway: gateway
+            )
             if !gatewayIsIPv6, lastBypassGateway != gateway {
                 let removed = RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: gateway)
                 if removed > 0 {
@@ -550,7 +556,7 @@ final class MonitorLoop: @unchecked Sendable {
                     destination: route,
                     gateway: gateway,
                     isIPv6: isIPv6,
-                    forceReplace: forceReplace
+                    forceReplace: shouldForceReplaceBypassRoutes
                 )
             }
         } else {
