@@ -31,7 +31,10 @@ enum AppConstants {
 
     static let defaultMonitorInterval: Int = 30
     static let statusPollInterval: TimeInterval = 5
-    static let cacheExpireSeconds: Int = 3600
+    /// Freshness window between DNS re-queries per domain. Kept short so
+    /// rotating domains reveal their sibling IPs quickly; accumulation with
+    /// `dnsRetentionSeconds` prevents route flapping between answers.
+    static let cacheExpireSeconds: Int = 300
     /// How long a resolved IP stays in the bypass set after it was last seen
     /// in a DNS answer. Rotating domains return one sibling per query, so
     /// IPs must outlive individual answers to keep full coverage.
