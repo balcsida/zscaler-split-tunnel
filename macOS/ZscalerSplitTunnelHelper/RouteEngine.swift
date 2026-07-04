@@ -145,6 +145,32 @@ enum RouteEngine {
         return nil
     }
 
+    /// Returns the IPv6 default gateway for direct overrides, or nil when
+    /// absent or owned by a tunnel interface (routing "direct" overrides
+    /// into the Zscaler utun would defeat them). Link-local gateways keep
+    /// their `%interface` scope — `route add -inet6` requires it.
+    static func getIPv6DefaultGateway() -> String? {
+        let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", "-inet6", "default"])
+        guard let output else { return nil }
+        return parseIPv6DefaultGateway(routeGetOutput: output)
+    }
+
+    static func parseIPv6DefaultGateway(routeGetOutput: String) -> String? {
+        var gateway: String?
+        var interface: String?
+        for line in routeGetOutput.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("gateway:") {
+                gateway = trimmed.dropFirst("gateway:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("interface:") {
+                interface = trimmed.dropFirst("interface:".count).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        guard let gateway, !gateway.isEmpty else { return nil }
+        if let interface, interface.hasPrefix("utun") { return nil }
+        return gateway
+    }
+
     static func getDefaultInterface() -> String? {
         let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", "default"])
         guard let output else { return nil }
