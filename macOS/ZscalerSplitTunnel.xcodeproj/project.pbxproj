@@ -11,6 +11,9 @@
 		1256C7DF0D353B1D197860D7 /* HelperConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70AD92ADEA5AACD9B2A103B /* HelperConnection.swift */; };
 		139067A681BEEC767ADA6B37 /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		15CA0250194EFBE8E43E0962 /* DefaultRouteRepairTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */; };
+		16B3D2A4C5E6F7089A1B2C3D /* DNSResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C4E3B5D6F708192A3B4C5D /* DNSResolverTests.swift */; };
+		38D5F4C6E708192A3B4C5D6E /* DNSResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2C151D0D47F7C428DA0DA3D /* DNSResolver.swift */; };
+		49E6A5D7F8192A3B4C5D6E7F /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		17C19AC1226281E29B8EC6ED /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B460EB8BE7D9A4A2CA6F4F7 /* ConfigService.swift */; };
 		1F1616FE9A826F3E2C395A52 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35055B3F3BB879250721AB10 /* StatusView.swift */; };
 		2063BD090AA7FA0D89A6EC4E /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
@@ -126,6 +129,7 @@
 		7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellRunner.swift; sourceTree = "<group>"; };
 		7E8BC7FE6199E76B81C7CC40 /* RecoveryNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryNotificationService.swift; sourceTree = "<group>"; };
 		7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRouteRepairTests.swift; sourceTree = "<group>"; };
+		27C4E3B5D6F708192A3B4C5D /* DNSResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSResolverTests.swift; sourceTree = "<group>"; };
 		81D1547C0BDA6D27CE7FCABC /* AddEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEntrySheet.swift; sourceTree = "<group>"; };
 		8263A1294673FD2B67A79458 /* BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.swift; sourceTree = "<group>"; };
 		8505BFD660895D27C55F9D51 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -214,6 +218,7 @@
 		7575FB8E55B26D1C895D4726 /* ZscalerSplitTunnelHelperTests */ = {
 			isa = PBXGroup;
 			children = (
+				27C4E3B5D6F708192A3B4C5D /* DNSResolverTests.swift */,
 				7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */,
 			);
 			path = ZscalerSplitTunnelHelperTests;
@@ -558,7 +563,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				49E6A5D7F8192A3B4C5D6E7F /* ConfigPaths.swift in Sources */,
 				27D3B4988E2BB90869D174A8 /* Constants.swift in Sources */,
+				38D5F4C6E708192A3B4C5D6E /* DNSResolver.swift in Sources */,
+				16B3D2A4C5E6F7089A1B2C3D /* DNSResolverTests.swift in Sources */,
 				66C67EBC13236381BEC4B146 /* DefaultRouteRepair.swift in Sources */,
 				15CA0250194EFBE8E43E0962 /* DefaultRouteRepairTests.swift in Sources */,
 				FB4AAD7C49F62B6DC87D6A11 /* RouteEngine.swift in Sources */,
