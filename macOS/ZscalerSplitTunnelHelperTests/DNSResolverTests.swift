@@ -90,6 +90,21 @@ final class DNSResolverTests: XCTestCase {
         XCTAssertEqual(queryCount, 2)
     }
 
+    func testAccumulatesIPv6Answers() {
+        nonisolated(unsafe) var clock = 1_000_000
+        nonisolated(unsafe) var answer = ["2606:50c0:8000::154"]
+        let resolver = DNSResolver(cacheURL: cacheURL, queryIPs: { _ in answer }, now: { clock })
+
+        XCTAssertEqual(resolver.resolve("raw.githubusercontent.com"), ["2606:50c0:8000::154"])
+
+        clock += AppConstants.cacheExpireSeconds + 1
+        answer = ["2606:50c0:8001::154"]
+        XCTAssertEqual(
+            resolver.resolve("raw.githubusercontent.com"),
+            ["2606:50c0:8000::154", "2606:50c0:8001::154"]
+        )
+    }
+
     func testReadsLegacyCacheFormat() {
         let clock = 1_000_000
         try? "domain:github.com=\(clock - 10) 140.82.121.6 185.199.108.133"
