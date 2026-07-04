@@ -22,6 +22,7 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
     private var lastBypassGateway: String?
+    private var lastBypassGatewayV6: String?
     private var lastStaleRouteCleanup: HelperStatus.RouteCleanupStatus?
     private var lastDefaultRouteRepairAttempt: Date?
     private var lastIPv6DefaultRouteRepairAttempt: Date?
@@ -505,6 +506,12 @@ final class MonitorLoop: @unchecked Sendable {
             }
 
             let gatewayIsIPv6 = IPValidator.isIPv6(gateway)
+            // On dual-stack networks the default gateway lookup returns IPv4,
+            // so IPv6 destinations (AAAA answers, v6 CIDRs) need their own
+            // gateway or they would be skipped and ride the Zscaler tunnel
+            // whenever Happy Eyeballs prefers IPv6.
+            let ipv6Gateway = gatewayIsIPv6 ? nil : RouteEngine.getIPv6DefaultGateway()
+            let forceReplaceV6 = forceReplace || (ipv6Gateway != nil && ipv6Gateway != lastBypassGatewayV6)
             if !gatewayIsIPv6, lastBypassGateway != gateway {
                 let removed = RouteEngine.flushStaleGatewayHostRoutes(
                     expectedGateway: gateway,
@@ -519,16 +526,27 @@ final class MonitorLoop: @unchecked Sendable {
                 }
             }
             lastBypassGateway = gateway
+            if let ipv6Gateway {
+                lastBypassGatewayV6 = ipv6Gateway
+            }
 
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)
-                // A route's address family must match the gateway's address family.
-                // Skipping mismatched routes avoids macOS rejecting the `route add`
-                // command (e.g. an IPv6 destination via an IPv4 gateway), which would
-                // leave those routes unset and cause ERR_ADDRESS_INVALID in browsers
-                // whose Happy Eyeballs logic prefers IPv6.
+                // A route's address family must match its gateway's family or
+                // macOS rejects the `route add`. Mismatched destinations go via
+                // the other family's default gateway when one exists; otherwise
+                // they are skipped.
                 guard isIPv6 == gatewayIsIPv6 else {
-                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
+                    if isIPv6, let ipv6Gateway {
+                        _ = RouteEngine.ensureBypassRoute(
+                            destination: route,
+                            gateway: ipv6Gateway,
+                            isIPv6: true,
+                            forceReplace: forceReplaceV6
+                        )
+                    } else {
+                        logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): no \(isIPv6 ? "IPv6" : "IPv4") gateway available")
+                    }
                     continue
                 }
                 _ = RouteEngine.ensureBypassRoute(
