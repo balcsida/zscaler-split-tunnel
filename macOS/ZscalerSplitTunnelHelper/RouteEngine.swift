@@ -320,6 +320,15 @@ enum RouteEngine {
         let (output, exitCode) = ShellRunner.run("/sbin/route", arguments: args)
         guard exitCode == 0, let output else { return false }
 
+        return routeGetOutputIndicatesInstalledRoute(
+            destination: destination,
+            expectedGateway: expectedGateway,
+            isIPv6: isIPv6,
+            output: output
+        )
+    }
+
+    static func routeGetOutputIndicatesInstalledRoute(destination: String, expectedGateway: String?, isIPv6: Bool, output: String) -> Bool {
         var reportedDestination: String?
         var reportedGateway: String?
         var mask: String?
@@ -345,7 +354,14 @@ enum RouteEngine {
             if prefix == "32" || prefix == "128" {
                 return reportedDestination == address
             }
-            if !isIPv6, let expectedMask = ipv4Mask(forPrefix: prefix) {
+            if isIPv6 {
+                // route(8) reports IPv6 prefix routes by their base address
+                // and an IPv6-formatted mask; matching the base address (the
+                // gateway was already checked above) keeps installed prefixes
+                // like 2a0a:a440::/29 from being replaced every cycle.
+                return reportedDestination == address
+            }
+            if let expectedMask = ipv4Mask(forPrefix: prefix) {
                 return mask == expectedMask
             }
         }
