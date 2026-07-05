@@ -509,8 +509,14 @@ final class MonitorLoop: @unchecked Sendable {
             // On dual-stack networks the default gateway lookup returns IPv4,
             // so IPv6 destinations (AAAA answers, v6 CIDRs) need their own
             // gateway or they would be skipped and ride the Zscaler tunnel
-            // whenever Happy Eyeballs prefers IPv6.
-            let ipv6Gateway = gatewayIsIPv6 ? nil : RouteEngine.getIPv6DefaultGateway()
+            // whenever Happy Eyeballs prefers IPv6. Office Wi-Fi mode pins
+            // overrides to the Wi-Fi gateway; the system IPv6 default may sit
+            // on another interface, so IPv6 overrides are skipped there rather
+            // than routed around the office path.
+            let usingOfficeWifiGateway = officeMode == .officeWifi && officeDetector.wifiGateway != nil
+            let ipv6Gateway = (gatewayIsIPv6 || usingOfficeWifiGateway)
+                ? nil
+                : RouteEngine.getIPv6DefaultGateway()
             let forceReplaceV6 = forceReplace || (ipv6Gateway != nil && ipv6Gateway != lastBypassGatewayV6)
             let shouldForceReplaceBypassRoutes = RouteEngine.shouldForceReplaceBypassRoutes(
                 forceReplace: forceReplace,
