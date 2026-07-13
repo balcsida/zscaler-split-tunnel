@@ -32,7 +32,9 @@ enum ShellRunner {
                 return
             }
             let source = DispatchSource.makeReadSource(fileDescriptor: descriptor, queue: queue)
-            source.setEventHandler { [weak self] in self?.drain() }
+            source.setEventHandler { [weak self] in
+                self?.drain(maxBytes: max(Int(source.data), 1))
+            }
             source.setCancelHandler { [weak self] in self?.finish() }
             self.source = source
             source.resume()
@@ -44,7 +46,7 @@ enum ShellRunner {
 
         func cancel() {
             queue.sync {
-                drain()
+                drain(maxBytes: Int(source?.data ?? 0))
                 source?.cancel()
             }
             try? pipe.fileHandleForReading.close()
@@ -55,17 +57,19 @@ enum ShellRunner {
             queue.sync { data }
         }
 
-        private func drain() {
+        private func drain(maxBytes: Int) {
             let descriptor = pipe.fileHandleForReading.fileDescriptor
             var buffer = [UInt8](repeating: 0, count: 4096)
-            while true {
-                let count = Darwin.read(descriptor, &buffer, buffer.count)
+            var remaining = maxBytes
+            while remaining > 0 {
+                let count = Darwin.read(descriptor, &buffer, min(buffer.count, remaining))
                 if count > 0 {
                     data.append(contentsOf: buffer.prefix(count))
+                    remaining -= count
                 } else if count == 0 {
                     source?.cancel()
                     return
-                } else if errno != EINTR {
+                } else {
                     return
                 }
             }

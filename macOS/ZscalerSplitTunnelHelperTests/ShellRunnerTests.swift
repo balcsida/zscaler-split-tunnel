@@ -39,6 +39,18 @@ final class ShellRunnerTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(started), 2)
     }
 
+    func testTimeoutDoesNotHangOnContinuousOutput() {
+        let started = Date()
+        let result = ShellRunner.run(
+            "/bin/sh",
+            arguments: ["-c", String(repeating: "/usr/bin/yes & ", count: 8) + "wait"],
+            timeout: 0.1
+        )
+        XCTAssertEqual(result.exitCode, ShellRunner.timeoutExitCode)
+        XCTAssertFalse(result.output?.isEmpty ?? true)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
+
     func testRunReturnsNilForInvalidUTF8() {
         let result = ShellRunner.run("/usr/bin/printf", arguments: ["\\377"])
         XCTAssertEqual(result.exitCode, 0)
