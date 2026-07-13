@@ -25,4 +25,23 @@ final class ShellRunnerTests: XCTestCase {
         XCTAssertEqual(result.stdout, "stdout")
         XCTAssertEqual(result.stderr, "stderr")
     }
+
+    func testTimeoutDoesNotWaitForDescendantPipeHolders() {
+        let started = Date()
+        let result = ShellRunner.runCapturingStderr(
+            "/bin/sh",
+            arguments: ["-c", "trap '' TERM; sleep 5 & printf stdout; printf stderr >&2; wait"],
+            timeout: 0.1
+        )
+        XCTAssertEqual(result.exitCode, ShellRunner.timeoutExitCode)
+        XCTAssertEqual(result.stdout, "stdout")
+        XCTAssertEqual(result.stderr, "stderr")
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
+
+    func testRunReturnsNilForInvalidUTF8() {
+        let result = ShellRunner.run("/usr/bin/printf", arguments: ["\\377"])
+        XCTAssertEqual(result.exitCode, 0)
+        XCTAssertNil(result.output)
+    }
 }
