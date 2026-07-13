@@ -12,6 +12,7 @@
 		139067A681BEEC767ADA6B37 /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		15CA0250194EFBE8E43E0962 /* DefaultRouteRepairTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */; };
 		16B3D2A4C5E6F7089A1B2C3D /* DNSResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C4E3B5D6F708192A3B4C5D /* DNSResolverTests.swift */; };
+		2A4C6E8091B3D5F708192A4C /* ShellRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5D7F901A2C4E608192B3D5 /* ShellRunnerTests.swift */; };
 		6BA8C7F9BA314C5D6E7F8091 /* RouteEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF7B6E8A9203B4C5D6E7F80 /* RouteEngineTests.swift */; };
 		7CB9D8E0CB425D6E7F809102 /* ConfigLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DCAE9F1DC536E7F80910213 /* ConfigLoaderTests.swift */; };
 		9EDBFA02ED647F8091021324 /* ConfigLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE4A49FAAF03951184D4888 /* ConfigLoader.swift */; };
@@ -114,6 +115,7 @@
 		369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorLoop.swift; sourceTree = "<group>"; };
 		3705BDF249A6E3E3BAC26B67 /* ConfigEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigEditorView.swift; sourceTree = "<group>"; };
 		3AE4A49FAAF03951184D4888 /* ConfigLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigLoader.swift; sourceTree = "<group>"; };
+		3B5D7F901A2C4E608192B3D5 /* ShellRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellRunnerTests.swift; sourceTree = "<group>"; };
 		3C2801D0C6C19E03C559EB13 /* ZscalerSplitTunnelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZscalerSplitTunnelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D766A5D11F156626BFC073E /* DeviceField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceField.swift; sourceTree = "<group>"; };
 		3E1161006D298CAE83823215 /* OfficeModeTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeModeTab.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 				27C4E3B5D6F708192A3B4C5D /* DNSResolverTests.swift */,
 				7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */,
 				5AF7B6E8A9203B4C5D6E7F80 /* RouteEngineTests.swift */,
+				3B5D7F901A2C4E608192B3D5 /* ShellRunnerTests.swift */,
 			);
 			path = ZscalerSplitTunnelHelperTests;
 			sourceTree = "<group>";
@@ -586,6 +589,7 @@
 				6BA8C7F9BA314C5D6E7F8091 /* RouteEngineTests.swift in Sources */,
 				E24ED6F33D219DD5043D983E /* RouteReset.swift in Sources */,
 				740F681AA3A8DDC534767B3A /* ShellRunner.swift in Sources */,
+				2A4C6E8091B3D5F708192A4C /* ShellRunnerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
