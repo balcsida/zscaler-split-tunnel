@@ -21,6 +21,7 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var interval: Int = AppConstants.defaultMonitorInterval
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
+    private var lastFullRefresh: Date?
     private var lastBypassGateway: String?
     private var lastBypassGatewayV6: String?
     private var lastStaleRouteCleanup: HelperStatus.RouteCleanupStatus?
@@ -124,6 +125,7 @@ final class MonitorLoop: @unchecked Sendable {
             guard let self else { return }
             self.lastDefaultRouteRepairAttempt = nil
             self.lastIPv6DefaultRouteRepairAttempt = nil
+            self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
@@ -227,9 +229,20 @@ final class MonitorLoop: @unchecked Sendable {
                 logger.info("Direct override gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing direct overrides")
                 reloadAndApplyRoutes()
             } else {
-                sweepBroadRoutesAndRepairIPv6Default()
-                addCustomRoutes()
-                addBypassRoutes()
+                let fullRefreshDue = ReconciliationSchedule.shouldRunFullRefresh(
+                    lastFullRefresh: lastFullRefresh,
+                    now: Date()
+                )
+                if fullRefreshDue, lastFullRefresh == nil {
+                    reloadAndApplyRoutes()
+                } else {
+                    sweepBroadRoutesAndRepairIPv6Default()
+                    if fullRefreshDue {
+                        addCustomRoutes()
+                        addBypassRoutes()
+                        lastFullRefresh = Date()
+                    }
+                }
             }
         }
 
@@ -465,6 +478,7 @@ final class MonitorLoop: @unchecked Sendable {
 
         addRoutes(customRoutes, bypass: false)
         addRoutes(bypassRoutes, bypass: true, forceReplace: forceReplace)
+        lastFullRefresh = Date()
     }
 
     private func addCustomRoutes() {
