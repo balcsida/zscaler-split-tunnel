@@ -115,10 +115,15 @@ targets:
     platform: macOS
     sources:
       - path: ZscalerSplitTunnelHelperTests
+      - path: ZscalerSplitTunnelHelper/ConfigLoader.swift
+      - path: ZscalerSplitTunnelHelper/DNSResolver.swift
       - path: ZscalerSplitTunnelHelper/DefaultRouteRepair.swift
+      - path: ZscalerSplitTunnelHelper/IPValidator.swift
+      - path: ZscalerSplitTunnelHelper/RemoteRouteFetcher.swift
       - path: ZscalerSplitTunnelHelper/RouteEngine.swift
       - path: ZscalerSplitTunnelHelper/RouteReset.swift
       - path: ZscalerSplitTunnelHelper/ShellRunner.swift
+      - path: Shared/ConfigPaths.swift
       - path: Shared/Constants.swift
     settings:
       base:
