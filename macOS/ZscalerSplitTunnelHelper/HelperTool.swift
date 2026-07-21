@@ -4,6 +4,16 @@ import os
 final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @unchecked Sendable {
     private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "HelperTool")
     private let monitorLoop = MonitorLoop()
+    private let statusQueue = DispatchQueue(label: "com.zscaler-split-tunnel.helper.status", qos: .utility)
+    private let statusCache = HelperStatusCache()
+
+    override init() {
+        super.init()
+        _ = statusCache.snapshotAndBeginRefresh()
+        statusQueue.async { [weak self] in
+            self?.refreshLiveStatus()
+        }
+    }
 
     // MARK: - NSXPCListenerDelegate
 
@@ -86,28 +96,25 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func getStatus(reply: @escaping (Data) -> Void) {
-        let broadRoutes = BroadRouteManager.countPresentRoutes()
-        let zscalerRunning = ZscalerServiceManager.isRunning()
-        let zscalerInterface = RouteEngine.detectZscalerInterface()
-        let networkSignature = NetworkDetector.getNetworkSignature()
+        let liveStatus = statusCache.snapshotAndBeginRefresh()
 
         // Read all MonitorLoop state from a single synchronized snapshot
         monitorLoop.statusSnapshot { [weak self] snapshot in
             let status = HelperStatus(
                 isMonitoring: snapshot.isRunning,
                 monitorInterval: snapshot.interval,
-                zscalerRunning: zscalerRunning,
-                zscalerInterface: zscalerInterface,
+                zscalerRunning: liveStatus.snapshot.zscalerRunning,
+                zscalerInterface: liveStatus.snapshot.zscalerInterface,
                 broadRoutesPresent: HelperStatus.BroadRouteStatus(
-                    ipv4Present: broadRoutes.ipv4,
+                    ipv4Present: liveStatus.snapshot.broadIPv4,
                     ipv4Total: AppConstants.ipv4BroadRoutes.count,
-                    ipv6Present: broadRoutes.ipv6,
+                    ipv6Present: liveStatus.snapshot.broadIPv6,
                     ipv6Total: AppConstants.ipv6BroadRoutes.count
                 ),
                 customRouteCount: snapshot.customRouteCount,
                 bypassRouteCount: snapshot.bypassRouteCount,
                 lastRefresh: snapshot.lastRefresh,
-                networkSignature: networkSignature,
+                networkSignature: liveStatus.snapshot.networkSignature,
                 version: BuildInfo.gitCommitSHA,
                 officeMode: snapshot.officeMode,
                 officeSwitchName: snapshot.officeSwitchName,
@@ -129,7 +136,24 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
                 self?.logger.error("Failed to encode status: \(error.localizedDescription)")
                 reply(Data())
             }
+
+            if liveStatus.shouldRefresh {
+                self?.statusQueue.async { [weak self] in
+                    self?.refreshLiveStatus()
+                }
+            }
         }
+    }
+
+    private func refreshLiveStatus() {
+        let broadRoutes = BroadRouteManager.countPresentRoutes()
+        statusCache.finishRefresh(LiveHelperStatus(
+            zscalerRunning: ZscalerServiceManager.isRunning(),
+            zscalerInterface: RouteEngine.detectZscalerInterface(),
+            broadIPv4: broadRoutes.ipv4,
+            broadIPv6: broadRoutes.ipv6,
+            networkSignature: NetworkDetector.getNetworkSignature()
+        ))
     }
 
     func enableAutostart(reply: @escaping (Bool, String?) -> Void) {
