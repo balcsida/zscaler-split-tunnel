@@ -8,8 +8,9 @@ enum ReconciliationSchedule {
         forced: Bool = false
     ) -> Bool {
         forced || lastFullRefresh.map {
-            now.addingTimeInterval(nextCheckIn).timeIntervalSince($0)
-                >= TimeInterval(AppConstants.cacheExpireSeconds)
+            let elapsed = now.timeIntervalSince($0)
+            let interval = TimeInterval(AppConstants.cacheExpireSeconds)
+            return elapsed >= interval || elapsed + nextCheckIn > interval
         } ?? true
     }
 }
