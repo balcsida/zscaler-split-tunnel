@@ -118,6 +118,7 @@ targets:
       - path: ZscalerSplitTunnelHelper/ConfigLoader.swift
       - path: ZscalerSplitTunnelHelper/DNSResolver.swift
       - path: ZscalerSplitTunnelHelper/DefaultRouteRepair.swift
+      - path: ZscalerSplitTunnelHelper/DNSFlush.swift
       - path: ZscalerSplitTunnelHelper/HelperStatusCache.swift
       - path: ZscalerSplitTunnelHelper/IPValidator.swift
       - path: ZscalerSplitTunnelHelper/RemoteRouteFetcher.swift
