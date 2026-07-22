@@ -231,7 +231,8 @@ final class MonitorLoop: @unchecked Sendable {
             } else {
                 let fullRefreshDue = ReconciliationSchedule.shouldRunFullRefresh(
                     lastFullRefresh: lastFullRefresh,
-                    now: Date()
+                    now: Date(),
+                    nextCheckIn: TimeInterval(interval)
                 )
                 if fullRefreshDue, lastFullRefresh == nil {
                     reloadAndApplyRoutes()

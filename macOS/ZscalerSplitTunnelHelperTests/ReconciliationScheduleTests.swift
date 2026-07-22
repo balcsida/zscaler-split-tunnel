@@ -22,4 +22,16 @@ final class ReconciliationScheduleTests: XCTestCase {
             now: last.addingTimeInterval(300)
         ))
     }
+
+    func testRunsBeforeTimerMisalignmentWouldMissFiveMinuteDeadline() {
+        let timerStarted = Date(timeIntervalSince1970: 1_000)
+        let initialRefreshCompleted = timerStarted.addingTimeInterval(5)
+        let nominalFiveMinuteTick = timerStarted.addingTimeInterval(300)
+
+        XCTAssertTrue(ReconciliationSchedule.shouldRunFullRefresh(
+            lastFullRefresh: initialRefreshCompleted,
+            now: nominalFiveMinuteTick,
+            nextCheckIn: 30
+        ))
+    }
 }
