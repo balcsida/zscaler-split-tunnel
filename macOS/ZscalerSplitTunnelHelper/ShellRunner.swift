@@ -3,7 +3,7 @@ import Foundation
 
 enum ShellRunner {
     static let timeoutExitCode: Int32 = 124
-    static let statusTimeout: TimeInterval = 2
+    static let statusTimeout: TimeInterval = 0.5
     private static let defaultTimeout: TimeInterval = 10
     private static let terminationGrace: TimeInterval = 1
     private static let killConfirmationGrace: TimeInterval = 0.1
