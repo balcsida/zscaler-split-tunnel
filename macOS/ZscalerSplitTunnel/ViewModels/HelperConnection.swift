@@ -3,6 +3,7 @@ import Foundation
 actor HelperConnection {
     private var connection: NSXPCConnection?
     private static let xpcTimeout: TimeInterval = 5
+    static let dnsFlushTimeout: TimeInterval = 25
 
     private func connect() -> NSXPCConnection {
         if let existing = connection {
@@ -113,10 +114,12 @@ actor HelperConnection {
     }
 
     func flushDNSCache() async throws {
-        let _: Void = try await withProxy { proxy, reply in
-            proxy.flushDNSCache { _, error in
+        let _: Void = try await withProxy(timeout: Self.dnsFlushTimeout) { proxy, reply in
+            proxy.flushDNSCache { success, error in
                 if let error {
                     reply(.failure(HelperConnectionError.remote(error)))
+                } else if !success {
+                    reply(.failure(HelperConnectionError.remote("Failed to flush macOS DNS cache")))
                 } else {
                     reply(.success(()))
                 }

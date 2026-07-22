@@ -27,12 +27,15 @@
 		4608FAAAC91BFECD7C039AAA /* OfficeModeTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1161006D298CAE83823215 /* OfficeModeTab.swift */; };
 		46B6E24159BF8698E983433B /* ConfigEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4365D5243E404771C030B1 /* ConfigEntry.swift */; };
 		46E2E9925977AF62F9CB9CD7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CA5A80B558447826FF03E85 /* ServiceManagement.framework */; };
+		4834AFE39727E4B88BAEB040 /* HelperConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70AD92ADEA5AACD9B2A103B /* HelperConnection.swift */; };
 		4842503A62EACBDDD8CCAD76 /* HelperInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABBEAC25477107623B650BCE /* HelperInstallerTests.swift */; };
 		50A484F9EBECCCCB377C46C4 /* CDPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFBBC5945F841E5B3C79C79 /* CDPParser.swift */; };
 		5535DF5F141D83700EF34C0F /* ZscalerSplitTunnelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0267894E6C00F4D435F91E /* ZscalerSplitTunnelApp.swift */; };
 		6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */; };
 		63302E31DE378916A530BC2E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8505BFD660895D27C55F9D51 /* SettingsView.swift */; };
+		65BE499F62ABD9943225F0BF /* XPCTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224E97715CF8DAC19D977D14 /* XPCTypes.swift */; };
 		66C67EBC13236381BEC4B146 /* DefaultRouteRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36367CF0F42A8AA00B5C6953 /* DefaultRouteRepair.swift */; };
+		691E76B2BB7C160C17A38F04 /* HelperConnectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */; };
 		695254C77651B99406A82694 /* ConfigLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67E4F4AF4ED0ED2716E91826 /* ConfigLoaderTests.swift */; };
 		6D59A76123A203743736F9EB /* DiscoveredDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB03AE888CC51567A99E2C1D /* DiscoveredDevice.swift */; };
 		6D74151F45604B59AE551F06 /* RoutesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402F29765F54B12DA8FF0E2E /* RoutesListView.swift */; };
@@ -51,6 +54,7 @@
 		8D7962C008DD5747D479DD61 /* RecoveryNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E8BC7FE6199E76B81C7CC40 /* RecoveryNotificationService.swift */; };
 		9642168AE515F605D420CEFC /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
 		97497CE3AE143CC08C7DEA3F /* DeviceFieldPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B2D28E40B4F23E10769423 /* DeviceFieldPreferences.swift */; };
+		981AAAD6642132A706DAA2DE /* DiscoveredDeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C25FF9FC9BEB262D15730E2 /* DiscoveredDeviceInfo.swift */; };
 		98F74A35C55FF7579BE9607E /* ReconciliationSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 745D89BE5EDAFF6597D1A8A2 /* ReconciliationSchedule.swift */; };
 		9A21F9F0E38934B7551BFA11 /* NetworkDeviceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A8B2679A8FFB018FD60C4E /* NetworkDeviceTab.swift */; };
 		9A51E3F5DB8641BA147A411D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7648F2DFFF87AA760F6658A /* AppDelegate.swift */; };
@@ -64,6 +68,7 @@
 		AD156C10DF47843BA945D80C /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126D6BD713F641816F2090E7 /* XPCProtocol.swift */; };
 		AD7BBCB2F915BF7FAD7F16E4 /* DNSFlushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA15259E900D1771E55FF7CE /* DNSFlushTests.swift */; };
 		AE115ECF3538358E59B46F15 /* WiFiDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A7394107CABE67A0C849CE /* WiFiDetector.swift */; };
+		AE4BBE75E459F55D028E0521 /* XPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126D6BD713F641816F2090E7 /* XPCProtocol.swift */; };
 		B21C751613C630EF8B6831B4 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 725D72DA06B4F68E4A028B5D /* Network.framework */; };
 		B2C60DE993EA61B707EF90C4 /* ReconciliationScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */; };
 		B3396BF8F69A7213F42780ED /* XPCTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224E97715CF8DAC19D977D14 /* XPCTypes.swift */; };
@@ -155,6 +160,7 @@
 		8C41676E200EF18A76D56F15 /* HelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInstaller.swift; sourceTree = "<group>"; };
 		8D3A8FC66628944751E0C667 /* OfficeNetworkDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeNetworkDetector.swift; sourceTree = "<group>"; };
 		8FB2C7DA287EF39B963EEFAF /* DNSResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSResolverTests.swift; sourceTree = "<group>"; };
+		A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnectionTests.swift; sourceTree = "<group>"; };
 		A6CACC854CCC59F099A26672 /* HelperStatusCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperStatusCache.swift; sourceTree = "<group>"; };
 		A6F6178AC256EE526C9B0F4D /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		A70AD92ADEA5AACD9B2A103B /* HelperConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnection.swift; sourceTree = "<group>"; };
@@ -222,6 +228,7 @@
 		2D2C4C230E54ADF5FED9C47D /* ZscalerSplitTunnelTests */ = {
 			isa = PBXGroup;
 			children = (
+				A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */,
 				ABBEAC25477107623B650BCE /* HelperInstallerTests.swift */,
 			);
 			path = ZscalerSplitTunnelTests;
@@ -697,8 +704,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				6ECA86F02F3D8DD811CF37F5 /* Constants.swift in Sources */,
+				981AAAD6642132A706DAA2DE /* DiscoveredDeviceInfo.swift in Sources */,
+				4834AFE39727E4B88BAEB040 /* HelperConnection.swift in Sources */,
+				691E76B2BB7C160C17A38F04 /* HelperConnectionTests.swift in Sources */,
 				BF2CCDA2E1B79F11F0EF3623 /* HelperInstaller.swift in Sources */,
 				4842503A62EACBDDD8CCAD76 /* HelperInstallerTests.swift in Sources */,
+				AE4BBE75E459F55D028E0521 /* XPCProtocol.swift in Sources */,
+				65BE499F62ABD9943225F0BF /* XPCTypes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
