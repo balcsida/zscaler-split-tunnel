@@ -146,14 +146,25 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     private func refreshLiveStatus() {
-        let broadRoutes = BroadRouteManager.countPresentRoutes()
-        statusCache.finishRefresh(LiveHelperStatus(
-            zscalerRunning: ZscalerServiceManager.isRunning(),
-            zscalerInterface: RouteEngine.detectZscalerInterface(),
-            broadIPv4: broadRoutes.ipv4,
-            broadIPv6: broadRoutes.ipv6,
-            networkSignature: NetworkDetector.getNetworkSignature()
-        ))
+        let refresh = LiveHelperStatusRefresh(
+            zscalerRunning: ZscalerServiceManager.statusIsRunning(),
+            zscalerInterface: RouteEngine.statusZscalerInterface(),
+            broadRoutes: BroadRouteManager.statusRouteCounts(),
+            networkSignature: NetworkDetector.statusNetworkSignature()
+        )
+        if case .failure = refresh.zscalerRunning {
+            logger.error("Status probe failed: Zscaler process state")
+        }
+        if case .failure = refresh.zscalerInterface {
+            logger.error("Status probe failed: Zscaler interface")
+        }
+        if case .failure = refresh.broadRoutes {
+            logger.error("Status probe failed: broad-route counts")
+        }
+        if case .failure = refresh.networkSignature {
+            logger.error("Status probe failed: network signature")
+        }
+        statusCache.finishRefresh(refresh)
     }
 
     func enableAutostart(reply: @escaping (Bool, String?) -> Void) {

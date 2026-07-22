@@ -448,6 +448,19 @@ enum RouteEngine {
     static func detectZscalerInterface() -> String? {
         let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", AppConstants.zscalerProbeAddress])
         guard let output else { return nil }
+        return parseInterface(output)
+    }
+
+    static func statusZscalerInterface() -> StatusProbe<String?> {
+        let result = ShellRunner.runStatus(
+            "/sbin/route",
+            arguments: ["-n", "get", AppConstants.zscalerProbeAddress]
+        )
+        guard result.exitCode == 0, let output = result.output else { return .failure }
+        return .success(parseInterface(output))
+    }
+
+    private static func parseInterface(_ output: String) -> String? {
         for line in output.components(separatedBy: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("interface:") {
