@@ -72,8 +72,8 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     }
 
     func flushDNSCache(reply: @escaping (Bool, String?) -> Void) {
-        DNSFlush.flush()
-        reply(true, nil)
+        let success = DNSFlush.flush()
+        reply(success, success ? nil : "Failed to flush macOS DNS cache")
     }
 
     func startZscaler(consoleUser: String, reply: @escaping (Bool, String?) -> Void) {
