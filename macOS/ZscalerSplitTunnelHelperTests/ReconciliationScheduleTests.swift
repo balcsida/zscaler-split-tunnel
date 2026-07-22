@@ -34,4 +34,14 @@ final class ReconciliationScheduleTests: XCTestCase {
             nextCheckIn: 30
         ))
     }
+
+    func testWaitsWhenNextCheckLandsExactlyOnFiveMinuteDeadline() {
+        let last = Date(timeIntervalSince1970: 1_000)
+
+        XCTAssertFalse(ReconciliationSchedule.shouldRunFullRefresh(
+            lastFullRefresh: last,
+            now: last.addingTimeInterval(270),
+            nextCheckIn: 30
+        ))
+    }
 }
