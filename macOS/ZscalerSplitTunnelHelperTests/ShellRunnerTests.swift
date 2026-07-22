@@ -57,13 +57,16 @@ final class ShellRunnerTests: XCTestCase {
         XCTAssertNil(result.output)
     }
 
-    func testSixSerialStatusCommandsFitPollBudget() {
+    func testSixTermIgnoringStatusCommandsFitPollBudget() {
         let started = Date()
         let results = (0..<6).map { _ in
-            ShellRunner.runStatus("/bin/sleep", arguments: ["1"])
+            ShellRunner.runStatus(
+                "/bin/sh",
+                arguments: ["-c", "trap '' TERM; sleep 5"]
+            )
         }
 
         XCTAssertTrue(results.allSatisfy { $0.exitCode == ShellRunner.timeoutExitCode })
-        XCTAssertLessThan(Date().timeIntervalSince(started), 4)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
     }
 }
