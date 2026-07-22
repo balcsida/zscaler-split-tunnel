@@ -5,7 +5,8 @@ enum ShellRunner {
     static let timeoutExitCode: Int32 = 124
     static let statusTimeout: TimeInterval = 0.5
     private static let defaultTimeout: TimeInterval = 10
-    private static let terminationGrace: TimeInterval = 1
+    private static let defaultTerminationGrace: TimeInterval = 1
+    private static let statusTerminationGrace: TimeInterval = 0.1
     private static let killConfirmationGrace: TimeInterval = 0.1
 
     private struct Result {
@@ -94,12 +95,27 @@ enum ShellRunner {
         arguments: [String] = [],
         timeout: TimeInterval = defaultTimeout
     ) -> (output: String?, exitCode: Int32) {
+        run(
+            executablePath,
+            arguments: arguments,
+            timeout: timeout,
+            terminationGrace: defaultTerminationGrace
+        )
+    }
+
+    private static func run(
+        _ executablePath: String,
+        arguments: [String],
+        timeout: TimeInterval,
+        terminationGrace: TimeInterval
+    ) -> (output: String?, exitCode: Int32) {
         let result = execute(
             executablePath,
             arguments: arguments,
             captureStdout: true,
             captureStderr: false,
-            timeout: timeout
+            timeout: timeout,
+            terminationGrace: terminationGrace
         )
         return (result.exitCode == -1 || !result.stdoutIsValidUTF8 ? nil : result.stdout, result.exitCode)
     }
@@ -108,7 +124,12 @@ enum ShellRunner {
         _ executablePath: String,
         arguments: [String] = []
     ) -> (output: String?, exitCode: Int32) {
-        run(executablePath, arguments: arguments, timeout: statusTimeout)
+        run(
+            executablePath,
+            arguments: arguments,
+            timeout: statusTimeout,
+            terminationGrace: statusTerminationGrace
+        )
     }
 
     @discardableResult
@@ -122,7 +143,8 @@ enum ShellRunner {
             arguments: arguments,
             captureStdout: false,
             captureStderr: false,
-            timeout: timeout
+            timeout: timeout,
+            terminationGrace: defaultTerminationGrace
         ).exitCode
     }
 
@@ -138,7 +160,8 @@ enum ShellRunner {
             arguments: arguments,
             captureStdout: true,
             captureStderr: true,
-            timeout: timeout
+            timeout: timeout,
+            terminationGrace: defaultTerminationGrace
         )
         return (result.stdout, result.stderr, result.exitCode)
     }
@@ -148,7 +171,8 @@ enum ShellRunner {
         arguments: [String],
         captureStdout: Bool,
         captureStderr: Bool,
-        timeout: TimeInterval
+        timeout: TimeInterval,
+        terminationGrace: TimeInterval
     ) -> Result {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executablePath)
@@ -186,7 +210,7 @@ enum ShellRunner {
                 }
             }
         } else {
-            let drainDeadline = DispatchTime.now() + terminationGrace
+            let drainDeadline = DispatchTime.now() + defaultTerminationGrace
             captures.filter { !$0.wait(until: drainDeadline) }.forEach { $0.cancel() }
         }
 
