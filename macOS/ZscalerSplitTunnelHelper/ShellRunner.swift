@@ -3,6 +3,7 @@ import Foundation
 
 enum ShellRunner {
     static let timeoutExitCode: Int32 = 124
+    static let statusTimeout: TimeInterval = 2
     private static let defaultTimeout: TimeInterval = 10
     private static let terminationGrace: TimeInterval = 1
     private static let killConfirmationGrace: TimeInterval = 0.1
@@ -101,6 +102,13 @@ enum ShellRunner {
             timeout: timeout
         )
         return (result.exitCode == -1 || !result.stdoutIsValidUTF8 ? nil : result.stdout, result.exitCode)
+    }
+
+    static func runStatus(
+        _ executablePath: String,
+        arguments: [String] = []
+    ) -> (output: String?, exitCode: Int32) {
+        run(executablePath, arguments: arguments, timeout: statusTimeout)
     }
 
     @discardableResult
