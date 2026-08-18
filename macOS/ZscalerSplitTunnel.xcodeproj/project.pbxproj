@@ -51,6 +51,7 @@
 		7E7E924E2E23F2E5F2ADA4DC /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8263A1294673FD2B67A79458 /* BuildInfo.swift */; };
 		83A18AA1EA6BACE2FFDD567D /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		8515F186474F4F5E825956EC /* MonitorLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369F6F78D631A4B0B7AC25B2 /* MonitorLoop.swift */; };
+		8855908620F421D393B67DB2 /* ProxySettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */; };
 		8D7962C008DD5747D479DD61 /* RecoveryNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E8BC7FE6199E76B81C7CC40 /* RecoveryNotificationService.swift */; };
 		9642168AE515F605D420CEFC /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
 		97497CE3AE143CC08C7DEA3F /* DeviceFieldPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B2D28E40B4F23E10769423 /* DeviceFieldPreferences.swift */; };
@@ -115,6 +116,7 @@
 /* Begin PBXFileReference section */
 		0AD5582139DF4729A0D15604 /* Reset Background Tasks */ = {isa = PBXFileReference; includeInIndex = 0; path = "Reset Background Tasks"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C25FF9FC9BEB262D15730E2 /* DiscoveredDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredDeviceInfo.swift; sourceTree = "<group>"; };
+		0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxySettingsTests.swift; sourceTree = "<group>"; };
 		11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigPaths.swift; sourceTree = "<group>"; };
 		126D6BD713F641816F2090E7 /* XPCProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCProtocol.swift; sourceTree = "<group>"; };
 		1607BE156D96C7F1A0B0E0BD /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
@@ -252,6 +254,7 @@
 				FA15259E900D1771E55FF7CE /* DNSFlushTests.swift */,
 				8FB2C7DA287EF39B963EEFAF /* DNSResolverTests.swift */,
 				76A2A1B79305BB4AC5A7AA00 /* HelperStatusCacheTests.swift */,
+				0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */,
 				753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */,
 				341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */,
 				5AE18BF09CCA455A508A3625 /* ShellRunnerTests.swift */,
@@ -613,6 +616,7 @@
 				CB407F20DA0A180704860E14 /* HelperStatusCache.swift in Sources */,
 				BB72963807DF233F437405EA /* HelperStatusCacheTests.swift in Sources */,
 				3A79631B55EA30D7A28DAA4B /* IPValidator.swift in Sources */,
+				8855908620F421D393B67DB2 /* ProxySettingsTests.swift in Sources */,
 				98F74A35C55FF7579BE9607E /* ReconciliationSchedule.swift in Sources */,
 				B2C60DE993EA61B707EF90C4 /* ReconciliationScheduleTests.swift in Sources */,
 				E5AD9C656CB0A1DCB92DD942 /* RemoteRouteFetcher.swift in Sources */,
