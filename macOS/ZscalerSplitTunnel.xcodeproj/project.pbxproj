@@ -17,6 +17,7 @@
 		1F1616FE9A826F3E2C395A52 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35055B3F3BB879250721AB10 /* StatusView.swift */; };
 		2063BD090AA7FA0D89A6EC4E /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
 		27D3B4988E2BB90869D174A8 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
+		2B3B1B0C647460A4F2594DFE /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1607BE156D96C7F1A0B0E0BD /* NetworkMonitor.swift */; };
 		2D81411F1AA8B81D7425121E /* ShellRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE18BF09CCA455A508A3625 /* ShellRunnerTests.swift */; };
 		307ED058E386CD724D51207C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3BF3E104EB510C0674BCCC /* AppState.swift */; };
 		316CD0A37561863A5B0B8742 /* DNSFlush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8CC8E1E202FD973DB9D5E3 /* DNSFlush.swift */; };
@@ -26,6 +27,7 @@
 		39F16B8EBA377031E76DD508 /* ShellRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */; };
 		3A79631B55EA30D7A28DAA4B /* IPValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB0B04869C3F2898F38CC00 /* IPValidator.swift */; };
 		3C04144D32B4D0C282C58BDF /* ProxySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BC1CCB987FD0CF3775BA22 /* ProxySettings.swift */; };
+		3D7C97E42E8877D68528A2F1 /* NetworkMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0601E70F2D848F2F4DAC19FF /* NetworkMonitorTests.swift */; };
 		4608FAAAC91BFECD7C039AAA /* OfficeModeTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1161006D298CAE83823215 /* OfficeModeTab.swift */; };
 		46B6E24159BF8698E983433B /* ConfigEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4365D5243E404771C030B1 /* ConfigEntry.swift */; };
 		46E2E9925977AF62F9CB9CD7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CA5A80B558447826FF03E85 /* ServiceManagement.framework */; };
@@ -117,6 +119,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0601E70F2D848F2F4DAC19FF /* NetworkMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitorTests.swift; sourceTree = "<group>"; };
 		0AD5582139DF4729A0D15604 /* Reset Background Tasks */ = {isa = PBXFileReference; includeInIndex = 0; path = "Reset Background Tasks"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C25FF9FC9BEB262D15730E2 /* DiscoveredDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredDeviceInfo.swift; sourceTree = "<group>"; };
 		0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxySettingsTests.swift; sourceTree = "<group>"; };
@@ -236,6 +239,7 @@
 			children = (
 				A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */,
 				ABBEAC25477107623B650BCE /* HelperInstallerTests.swift */,
+				0601E70F2D848F2F4DAC19FF /* NetworkMonitorTests.swift */,
 			);
 			path = ZscalerSplitTunnelTests;
 			sourceTree = "<group>";
@@ -721,6 +725,8 @@
 				691E76B2BB7C160C17A38F04 /* HelperConnectionTests.swift in Sources */,
 				BF2CCDA2E1B79F11F0EF3623 /* HelperInstaller.swift in Sources */,
 				4842503A62EACBDDD8CCAD76 /* HelperInstallerTests.swift in Sources */,
+				2B3B1B0C647460A4F2594DFE /* NetworkMonitor.swift in Sources */,
+				3D7C97E42E8877D68528A2F1 /* NetworkMonitorTests.swift in Sources */,
 				AE4BBE75E459F55D028E0521 /* XPCProtocol.swift in Sources */,
 				65BE499F62ABD9943225F0BF /* XPCTypes.swift in Sources */,
 			);

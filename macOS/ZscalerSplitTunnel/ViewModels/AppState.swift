@@ -16,6 +16,14 @@ final class AppState {
     let helperConnection = HelperConnection()
     let configService = ConfigService()
 
+    // ponytail: Requires the menu-bar app; move this writer into the helper daemon
+    // if proxy state must follow network changes while the app is stopped.
+    private let networkMonitor = NetworkMonitor {
+        ProxySettings.refreshEnvironment(
+            configURL: ConfigPaths.proxyConfig,
+            environmentURL: ConfigPaths.proxyEnvironment
+        )
+    }
     private var pollingTask: Task<Void, Never>?
     private var pendingMonitorStart = false
     /// While set (to a future date), transient `getStatus` failures are suppressed —
@@ -34,6 +42,7 @@ final class AppState {
         // snapshot stays current without depending on the Settings tab being opened.
         configService.load()
         configService.startWatching()
+        networkMonitor.start()
         startStatusPolling()
     }
 
