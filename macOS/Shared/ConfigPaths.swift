@@ -14,6 +14,8 @@ enum ConfigPaths {
     static let configMtime = userConfigDir.appendingPathComponent("routes.mtime")
     static let domainCache = userConfigDir.appendingPathComponent("domain-cache.txt")
     static let remoteRouteCache = userConfigDir.appendingPathComponent("remote-route-cache.txt")
+    static let proxyConfig = userConfigDir.appendingPathComponent("proxy.conf")
+    static let proxyEnvironment = userConfigDir.appendingPathComponent("proxy.env")
     static let legacyRoutesConfig: URL = {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config/zscaler-split-tunnel.conf")

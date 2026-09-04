@@ -132,6 +132,7 @@ targets:
       - path: ZscalerSplitTunnelHelper/ShellRunner.swift
       - path: Shared/ConfigPaths.swift
       - path: Shared/Constants.swift
+      - path: Shared/ProxySettings.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.helper.tests
