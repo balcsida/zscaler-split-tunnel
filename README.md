@@ -146,6 +146,8 @@ User-specific files live under `~/.config/zscaler-split-tunnel/`:
 | `routes.conf` | User Zscaler routes |
 | `bypass.conf` | User direct overrides |
 | `office-mode.json` | Optional office WiFi routing settings |
+| `proxy.conf` | Optional HTTP proxy (`http://host:port`) and `no_proxy=...` settings |
+| `proxy.env` | Generated shell exports while the configured proxy is reachable |
 | `domain-cache.txt` | Runtime domain resolution cache |
 | `remote-route-cache.txt` | Runtime cache for remote route lists |
 
