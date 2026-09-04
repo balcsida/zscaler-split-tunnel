@@ -145,6 +145,7 @@ targets:
     sources:
       - path: ZscalerSplitTunnelTests
       - path: ZscalerSplitTunnel/Services/HelperInstaller.swift
+      - path: ZscalerSplitTunnel/Services/NetworkMonitor.swift
       - path: ZscalerSplitTunnel/ViewModels/HelperConnection.swift
       - path: Shared/Constants.swift
       - path: Shared/DiscoveredDeviceInfo.swift
