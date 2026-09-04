@@ -5,7 +5,7 @@ final class ProxySettingsTests: XCTestCase {
         let configURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("proxy-settings-\(UUID().uuidString).conf")
         defer { try? FileManager.default.removeItem(at: configURL) }
-        try "# Local proxy\nhttp://proxy.example:8080\n"
+        try "# Local proxy\nno_proxy=localhost,api.example.test\nhttp://proxy.example:8080\n"
             .write(to: configURL, atomically: true, encoding: .utf8)
 
         XCTAssertEqual(
@@ -15,5 +15,76 @@ final class ProxySettingsTests: XCTestCase {
             URL(string: "http://proxy.example:8080")
         )
         XCTAssertNil(ProxySettings.endpoint(configURL: configURL) { _, _ in false })
+    }
+
+    func testWritesShellEnvironmentWithConfiguredNoProxy() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("proxy-environment-\(UUID().uuidString)")
+        let configURL = directory.appendingPathComponent("proxy.conf")
+        let environmentURL = directory.appendingPathComponent("proxy.env")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try "http://proxy.example:8080\nno_proxy=localhost,api.example.test'quoted\n"
+            .write(to: configURL, atomically: true, encoding: .utf8)
+
+        ProxySettings.refreshEnvironment(
+            configURL: configURL,
+            environmentURL: environmentURL,
+            isReachable: { _, _ in true }
+        )
+
+        XCTAssertEqual(
+            try String(contentsOf: environmentURL, encoding: .utf8),
+            """
+            export HTTP_PROXY='http://proxy.example:8080'
+            export HTTPS_PROXY='http://proxy.example:8080'
+            export http_proxy='http://proxy.example:8080'
+            export https_proxy='http://proxy.example:8080'
+            export NO_PROXY='localhost,api.example.test'\\''quoted'
+            export no_proxy='localhost,api.example.test'\\''quoted'
+
+            """
+        )
+    }
+
+    func testRemovesShellEnvironmentWhenProxyIsUnreachable() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("proxy-environment-\(UUID().uuidString)")
+        let configURL = directory.appendingPathComponent("proxy.conf")
+        let environmentURL = directory.appendingPathComponent("proxy.env")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try "http://proxy.example:8080\n"
+            .write(to: configURL, atomically: true, encoding: .utf8)
+        try "stale\n".write(to: environmentURL, atomically: true, encoding: .utf8)
+
+        ProxySettings.refreshEnvironment(
+            configURL: configURL,
+            environmentURL: environmentURL,
+            isReachable: { _, _ in false }
+        )
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: environmentURL.path))
+    }
+
+    func testUsesLocalhostNoProxyByDefault() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("proxy-environment-\(UUID().uuidString)")
+        let configURL = directory.appendingPathComponent("proxy.conf")
+        let environmentURL = directory.appendingPathComponent("proxy.env")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try "http://proxy.example:8080\n"
+            .write(to: configURL, atomically: true, encoding: .utf8)
+
+        ProxySettings.refreshEnvironment(
+            configURL: configURL,
+            environmentURL: environmentURL,
+            isReachable: { _, _ in true }
+        )
+
+        let contents = try String(contentsOf: environmentURL, encoding: .utf8)
+        XCTAssertTrue(contents.contains("export NO_PROXY='localhost,127.0.0.1'"))
+        XCTAssertTrue(contents.contains("export no_proxy='localhost,127.0.0.1'"))
     }
 }

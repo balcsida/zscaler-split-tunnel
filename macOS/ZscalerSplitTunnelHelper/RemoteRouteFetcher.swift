@@ -1,33 +1,16 @@
 import Foundation
 import os
 
-enum ProxySettings {
-    static func endpoint(
-        configURL: URL,
-        isReachable: (String, Int) -> Bool = { host, port in
+extension ProxySettings {
+    static func sessionConfiguration(configURL: URL) -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        let endpoint = endpoint(configURL: configURL) { host, port in
             ShellRunner.runStatus(
                 "/usr/bin/nc",
                 arguments: ["-z", "-w1", host, String(port)]
             ).exitCode == 0
         }
-    ) -> URL? {
-        guard let contents = try? String(contentsOf: configURL, encoding: .utf8),
-              let value = contents.components(separatedBy: .newlines)
-                .map({ $0.trimmingCharacters(in: .whitespaces) })
-                .first(where: { !$0.isEmpty && !$0.hasPrefix("#") }),
-              let url = URL(string: value),
-              url.scheme == "http",
-              let host = url.host else {
-            return nil
-        }
-
-        let port = url.port ?? 80
-        return isReachable(host, port) ? url : nil
-    }
-
-    static func sessionConfiguration(configURL: URL) -> URLSessionConfiguration {
-        let configuration = URLSessionConfiguration.ephemeral
-        guard let endpoint = endpoint(configURL: configURL), let host = endpoint.host else {
+        guard let endpoint, let host = endpoint.host else {
             return configuration
         }
 
