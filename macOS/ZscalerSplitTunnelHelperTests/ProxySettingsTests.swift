@@ -11,6 +11,17 @@ final class ProxySettingsTests: XCTestCase {
 
         XCTAssertFalse(ProxySettings.runProbe(process, timeout: 0.1))
         XCTAssertLessThan(Date().timeIntervalSince(start), 1)
+        XCTAssertFalse(process.isRunning)
+    }
+
+    func testProcessProbeReportsExitStatus() {
+        let success = Process()
+        success.executableURL = URL(fileURLWithPath: "/usr/bin/true")
+        XCTAssertTrue(ProxySettings.runProbe(success))
+
+        let failure = Process()
+        failure.executableURL = URL(fileURLWithPath: "/usr/bin/false")
+        XCTAssertFalse(ProxySettings.runProbe(failure))
     }
 
     func testUsesConfiguredProxyOnlyWhenReachable() throws {
