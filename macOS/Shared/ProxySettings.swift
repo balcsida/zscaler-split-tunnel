@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 enum ProxySettings {
@@ -76,13 +77,31 @@ enum ProxySettings {
         process.arguments = ["-z", "-w1", host, String(port)]
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
+        return runProbe(process)
+    }
+
+    static func runProbe(_ process: Process, timeout: TimeInterval = 1) -> Bool {
+        let terminated = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in terminated.signal() }
         do {
             try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus == 0
         } catch {
             return false
         }
+
+        guard terminated.wait(timeout: .now() + timeout) == .timedOut else {
+            return process.terminationStatus == 0
+        }
+        if process.isRunning {
+            process.terminate()
+        }
+        if terminated.wait(timeout: .now() + 0.1) == .timedOut {
+            if process.isRunning {
+                _ = Darwin.kill(process.processIdentifier, SIGKILL)
+            }
+            _ = terminated.wait(timeout: .now() + 0.1)
+        }
+        return false
     }
 
     private static func shellQuote(_ value: String) -> String {

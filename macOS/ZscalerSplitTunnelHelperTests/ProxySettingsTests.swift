@@ -1,6 +1,18 @@
 import XCTest
 
 final class ProxySettingsTests: XCTestCase {
+    func testProcessProbeStopsAtDeadline() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "trap '' TERM; exec /bin/sleep 5"]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        let start = Date()
+
+        XCTAssertFalse(ProxySettings.runProbe(process, timeout: 0.1))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 1)
+    }
+
     func testUsesConfiguredProxyOnlyWhenReachable() throws {
         let configURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("proxy-settings-\(UUID().uuidString).conf")
