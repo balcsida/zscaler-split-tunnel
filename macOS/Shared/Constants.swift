@@ -27,7 +27,6 @@ enum AppConstants {
 
     static let zscalerProcessNames = ["Zscaler", "ZSTunnel", "ZSTray", "ZTunnelService"]
     static let zscalerAppPath = "/Applications/Zscaler/Zscaler.app"
-    static let zscalerProbeAddress = "100.64.1.3"
 
     static let defaultMonitorInterval: Int = 30
     static let statusPollInterval: TimeInterval = 5
