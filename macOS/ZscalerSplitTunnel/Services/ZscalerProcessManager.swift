@@ -57,7 +57,7 @@ final class ZscalerProcessManager {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/sbin/route")
-        process.arguments = ["-n", "get", AppConstants.zscalerProbeAddress]
+        process.arguments = ZscalerInterface.routeArguments
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
 
@@ -69,16 +69,9 @@ final class ZscalerProcessManager {
         }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard let output = String(data: data, encoding: .utf8) else { return nil }
+        guard process.terminationStatus == 0,
+              let output = String(data: data, encoding: .utf8) else { return nil }
 
-        for line in output.components(separatedBy: .newlines) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("interface:") {
-                return trimmed
-                    .replacingOccurrences(of: "interface:", with: "")
-                    .trimmingCharacters(in: .whitespaces)
-            }
-        }
-        return nil
+        return ZscalerInterface.parse(output)
     }
 }
