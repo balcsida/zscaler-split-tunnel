@@ -21,7 +21,9 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var interval: Int = AppConstants.defaultMonitorInterval
     private var lastNetworkSignature: String?
     private var lastConfigSignature: String?
+    private var lastFullRefresh: Date?
     private var lastBypassGateway: String?
+    private var lastBypassGatewayV6: String?
     private var lastStaleRouteCleanup: HelperStatus.RouteCleanupStatus?
     private var lastDefaultRouteRepairAttempt: Date?
     private var lastIPv6DefaultRouteRepairAttempt: Date?
@@ -123,6 +125,7 @@ final class MonitorLoop: @unchecked Sendable {
             guard let self else { return }
             self.lastDefaultRouteRepairAttempt = nil
             self.lastIPv6DefaultRouteRepairAttempt = nil
+            self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
@@ -226,9 +229,21 @@ final class MonitorLoop: @unchecked Sendable {
                 logger.info("Direct override gateway changed (\(self.lastBypassGateway ?? "nil") -> \(currentBypassGateway ?? "nil")), refreshing direct overrides")
                 reloadAndApplyRoutes()
             } else {
-                sweepBroadRoutesAndRepairIPv6Default()
-                addCustomRoutes()
-                addBypassRoutes()
+                let fullRefreshDue = ReconciliationSchedule.shouldRunFullRefresh(
+                    lastFullRefresh: lastFullRefresh,
+                    now: Date(),
+                    nextCheckIn: TimeInterval(interval)
+                )
+                if fullRefreshDue, lastFullRefresh == nil {
+                    reloadAndApplyRoutes()
+                } else {
+                    sweepBroadRoutesAndRepairIPv6Default()
+                    if fullRefreshDue {
+                        addCustomRoutes()
+                        addBypassRoutes()
+                        lastFullRefresh = Date()
+                    }
+                }
             }
         }
 
@@ -464,6 +479,7 @@ final class MonitorLoop: @unchecked Sendable {
 
         addRoutes(customRoutes, bypass: false)
         addRoutes(bypassRoutes, bypass: true, forceReplace: forceReplace)
+        lastFullRefresh = Date()
     }
 
     private func addCustomRoutes() {
@@ -505,11 +521,26 @@ final class MonitorLoop: @unchecked Sendable {
             }
 
             let gatewayIsIPv6 = IPValidator.isIPv6(gateway)
+            // On dual-stack networks the default gateway lookup returns IPv4,
+            // so IPv6 destinations (AAAA answers, v6 CIDRs) need their own
+            // gateway or they would be skipped and ride the Zscaler tunnel
+            // whenever Happy Eyeballs prefers IPv6. Office Wi-Fi mode pins
+            // overrides to the Wi-Fi gateway; the system IPv6 default may sit
+            // on another interface, so IPv6 overrides are skipped there rather
+            // than routed around the office path.
+            let usingOfficeWifiGateway = officeMode == .officeWifi && officeDetector.wifiGateway != nil
+            let ipv6Gateway = (gatewayIsIPv6 || usingOfficeWifiGateway)
+                ? nil
+                : RouteEngine.getIPv6DefaultGateway()
+            let forceReplaceV6 = forceReplace || (ipv6Gateway != nil && ipv6Gateway != lastBypassGatewayV6)
+            let shouldForceReplaceBypassRoutes = RouteEngine.shouldForceReplaceBypassRoutes(
+                forceReplace: forceReplace,
+                gatewayIsIPv6: gatewayIsIPv6,
+                lastBypassGateway: lastBypassGateway,
+                gateway: gateway
+            )
             if !gatewayIsIPv6, lastBypassGateway != gateway {
-                let removed = RouteEngine.flushStaleGatewayHostRoutes(
-                    expectedGateway: gateway,
-                    ownedDestinations: routes
-                )
+                let removed = RouteEngine.flushStaleGatewayHostRoutes(expectedGateway: gateway)
                 if removed > 0 {
                     lastStaleRouteCleanup = HelperStatus.RouteCleanupStatus(
                         removedCount: removed,
@@ -519,23 +550,34 @@ final class MonitorLoop: @unchecked Sendable {
                 }
             }
             lastBypassGateway = gateway
+            if let ipv6Gateway {
+                lastBypassGatewayV6 = ipv6Gateway
+            }
 
             for route in routes {
                 let isIPv6 = IPValidator.isIPv6(route)
-                // A route's address family must match the gateway's address family.
-                // Skipping mismatched routes avoids macOS rejecting the `route add`
-                // command (e.g. an IPv6 destination via an IPv4 gateway), which would
-                // leave those routes unset and cause ERR_ADDRESS_INVALID in browsers
-                // whose Happy Eyeballs logic prefers IPv6.
+                // A route's address family must match its gateway's family or
+                // macOS rejects the `route add`. Mismatched destinations go via
+                // the other family's default gateway when one exists; otherwise
+                // they are skipped.
                 guard isIPv6 == gatewayIsIPv6 else {
-                    logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): gateway \(gateway, privacy: .public) is \(gatewayIsIPv6 ? "IPv6" : "IPv4")")
+                    if isIPv6, let ipv6Gateway {
+                        _ = RouteEngine.ensureBypassRoute(
+                            destination: route,
+                            gateway: ipv6Gateway,
+                            isIPv6: true,
+                            forceReplace: forceReplaceV6
+                        )
+                    } else {
+                        logger.debug("Skipping \(isIPv6 ? "IPv6" : "IPv4") direct override \(route, privacy: .public): no \(isIPv6 ? "IPv6" : "IPv4") gateway available")
+                    }
                     continue
                 }
                 _ = RouteEngine.ensureBypassRoute(
                     destination: route,
                     gateway: gateway,
                     isIPv6: isIPv6,
-                    forceReplace: forceReplace
+                    forceReplace: shouldForceReplaceBypassRoutes
                 )
             }
         } else {

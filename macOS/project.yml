@@ -9,7 +9,11 @@ options:
 
 settings:
   base:
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: "YES"
+    DEAD_CODE_STRIPPING: "YES"
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
     SWIFT_VERSION: "6.0"
+    STRING_CATALOG_GENERATE_SYMBOLS: "YES"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
 
 targets:
@@ -115,10 +119,18 @@ targets:
     platform: macOS
     sources:
       - path: ZscalerSplitTunnelHelperTests
+      - path: ZscalerSplitTunnelHelper/ConfigLoader.swift
+      - path: ZscalerSplitTunnelHelper/DNSResolver.swift
       - path: ZscalerSplitTunnelHelper/DefaultRouteRepair.swift
+      - path: ZscalerSplitTunnelHelper/DNSFlush.swift
+      - path: ZscalerSplitTunnelHelper/HelperStatusCache.swift
+      - path: ZscalerSplitTunnelHelper/IPValidator.swift
+      - path: ZscalerSplitTunnelHelper/RemoteRouteFetcher.swift
+      - path: ZscalerSplitTunnelHelper/ReconciliationSchedule.swift
       - path: ZscalerSplitTunnelHelper/RouteEngine.swift
       - path: ZscalerSplitTunnelHelper/RouteReset.swift
       - path: ZscalerSplitTunnelHelper/ShellRunner.swift
+      - path: Shared/ConfigPaths.swift
       - path: Shared/Constants.swift
     settings:
       base:
@@ -132,7 +144,11 @@ targets:
     sources:
       - path: ZscalerSplitTunnelTests
       - path: ZscalerSplitTunnel/Services/HelperInstaller.swift
+      - path: ZscalerSplitTunnel/ViewModels/HelperConnection.swift
       - path: Shared/Constants.swift
+      - path: Shared/DiscoveredDeviceInfo.swift
+      - path: Shared/XPCProtocol.swift
+      - path: Shared/XPCTypes.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.zscaler-split-tunnel.app.tests

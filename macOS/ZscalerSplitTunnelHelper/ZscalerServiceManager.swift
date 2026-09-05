@@ -79,6 +79,18 @@ enum ZscalerServiceManager {
         return exitCode == 0 && !(output?.isEmpty ?? true)
     }
 
+    static func statusIsRunning() -> StatusProbe<Bool> {
+        let result = ShellRunner.runStatus("/usr/bin/pgrep", arguments: ["-x", "Zscaler"])
+        switch result.exitCode {
+        case 0:
+            return .success(!(result.output?.isEmpty ?? true))
+        case 1:
+            return .success(false)
+        default:
+            return .failure
+        }
+    }
+
     // MARK: - Private
 
     private static func getUID(for user: String) -> String? {
