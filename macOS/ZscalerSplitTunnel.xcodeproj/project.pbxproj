@@ -35,6 +35,7 @@
 		4842503A62EACBDDD8CCAD76 /* HelperInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABBEAC25477107623B650BCE /* HelperInstallerTests.swift */; };
 		50A484F9EBECCCCB377C46C4 /* CDPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFBBC5945F841E5B3C79C79 /* CDPParser.swift */; };
 		5535DF5F141D83700EF34C0F /* ZscalerSplitTunnelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E0267894E6C00F4D435F91E /* ZscalerSplitTunnelApp.swift */; };
+		575510E5D5486B58F29AA40C /* ZscalerInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */; };
 		6248C35F6D1D966A4D285FE4 /* NetworkChangeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706D81400AFE1A7E0E77826A /* NetworkChangeMonitor.swift */; };
 		63302E31DE378916A530BC2E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8505BFD660895D27C55F9D51 /* SettingsView.swift */; };
 		65BE499F62ABD9943225F0BF /* XPCTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224E97715CF8DAC19D977D14 /* XPCTypes.swift */; };
@@ -50,6 +51,7 @@
 		72726C63E3458F59C0F589A7 /* ConfigLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE4A49FAAF03951184D4888 /* ConfigLoader.swift */; };
 		740F681AA3A8DDC534767B3A /* ShellRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */; };
 		78E31F320AC05EC8990B3096 /* ConfigFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC472DA44A91A33E8615D785 /* ConfigFile.swift */; };
+		7AE2F057265FBC937EF406D1 /* ZscalerInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */; };
 		7B277C5D0F4B2EACAA10778E /* DeviceField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D766A5D11F156626BFC073E /* DeviceField.swift */; };
 		7DAEAB25FD49CE1F82484A16 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6610E2F4B6D75B364E7D148 /* main.swift */; };
 		7E7E924E2E23F2E5F2ADA4DC /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8263A1294673FD2B67A79458 /* BuildInfo.swift */; };
@@ -99,7 +101,9 @@
 		E353C142EF6338D648822168 /* DNSFlush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8CC8E1E202FD973DB9D5E3 /* DNSFlush.swift */; };
 		E4799B874759816452A68970 /* BroadRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320ED541D2452582E1D2BF6F /* BroadRoute.swift */; };
 		E5AD9C656CB0A1DCB92DD942 /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
+		E95468510A9458EE7DD9E166 /* ZscalerInterfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44FBF095B1B41C39767BAEB2 /* ZscalerInterfaceTests.swift */; };
 		EBE10272A9F09B876A85A1FB /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
+		ECD683D94AB6F58EA6B4B6ED /* ZscalerInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */; };
 		ED06CAB5B6DAE8AE695121DC /* HelperStatusCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CACC854CCC59F099A26672 /* HelperStatusCache.swift */; };
 		F17379F840CA601A95B87AF2 /* RouteEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */; };
 		F2248E645B011CDB9FFECD38 /* ProxySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BC1CCB987FD0CF3775BA22 /* ProxySettings.swift */; };
@@ -142,6 +146,7 @@
 		3E1161006D298CAE83823215 /* OfficeModeTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeModeTab.swift; sourceTree = "<group>"; };
 		3EFBBC5945F841E5B3C79C79 /* CDPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDPParser.swift; sourceTree = "<group>"; };
 		402F29765F54B12DA8FF0E2E /* RoutesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesListView.swift; sourceTree = "<group>"; };
+		44FBF095B1B41C39767BAEB2 /* ZscalerInterfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerInterfaceTests.swift; sourceTree = "<group>"; };
 		51A7394107CABE67A0C849CE /* WiFiDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiDetector.swift; sourceTree = "<group>"; };
 		5AE18BF09CCA455A508A3625 /* ShellRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellRunnerTests.swift; sourceTree = "<group>"; };
 		5E8CC8E1E202FD973DB9D5E3 /* DNSFlush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSFlush.swift; sourceTree = "<group>"; };
@@ -162,6 +167,7 @@
 		7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellRunner.swift; sourceTree = "<group>"; };
 		7E8BC7FE6199E76B81C7CC40 /* RecoveryNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryNotificationService.swift; sourceTree = "<group>"; };
 		7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRouteRepairTests.swift; sourceTree = "<group>"; };
+		80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerInterface.swift; sourceTree = "<group>"; };
 		81D1547C0BDA6D27CE7FCABC /* AddEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEntrySheet.swift; sourceTree = "<group>"; };
 		8263A1294673FD2B67A79458 /* BuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.swift; sourceTree = "<group>"; };
 		8505BFD660895D27C55F9D51 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -266,6 +272,7 @@
 				753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */,
 				341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */,
 				5AE18BF09CCA455A508A3625 /* ShellRunnerTests.swift */,
+				44FBF095B1B41C39767BAEB2 /* ZscalerInterfaceTests.swift */,
 			);
 			path = ZscalerSplitTunnelHelperTests;
 			sourceTree = "<group>";
@@ -365,6 +372,7 @@
 				E1BC1CCB987FD0CF3775BA22 /* ProxySettings.swift */,
 				126D6BD713F641816F2090E7 /* XPCProtocol.swift */,
 				224E97715CF8DAC19D977D14 /* XPCTypes.swift */,
+				80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -635,6 +643,8 @@
 				E24ED6F33D219DD5043D983E /* RouteReset.swift in Sources */,
 				740F681AA3A8DDC534767B3A /* ShellRunner.swift in Sources */,
 				2D81411F1AA8B81D7425121E /* ShellRunnerTests.swift in Sources */,
+				7AE2F057265FBC937EF406D1 /* ZscalerInterface.swift in Sources */,
+				E95468510A9458EE7DD9E166 /* ZscalerInterfaceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -671,6 +681,7 @@
 				1F1616FE9A826F3E2C395A52 /* StatusView.swift in Sources */,
 				B40A9D3DD7DA2C841D02BEF4 /* XPCProtocol.swift in Sources */,
 				B3396BF8F69A7213F42780ED /* XPCTypes.swift in Sources */,
+				ECD683D94AB6F58EA6B4B6ED /* ZscalerInterface.swift in Sources */,
 				AC0DDF9491EF6776F5F5EF62 /* ZscalerProcessManager.swift in Sources */,
 				5535DF5F141D83700EF34C0F /* ZscalerSplitTunnelApp.swift in Sources */,
 			);
@@ -710,6 +721,7 @@
 				AE115ECF3538358E59B46F15 /* WiFiDetector.swift in Sources */,
 				AD156C10DF47843BA945D80C /* XPCProtocol.swift in Sources */,
 				C2F1D0A45AA4684D189A60AC /* XPCTypes.swift in Sources */,
+				575510E5D5486B58F29AA40C /* ZscalerInterface.swift in Sources */,
 				9B3053DDBEA6018518EE71F8 /* ZscalerServiceManager.swift in Sources */,
 				7DAEAB25FD49CE1F82484A16 /* main.swift in Sources */,
 			);
