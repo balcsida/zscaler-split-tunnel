@@ -1,13 +1,44 @@
 import Foundation
 import os
 
+extension ProxySettings {
+    static func sessionConfiguration(configURL: URL) -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        let endpoint = endpoint(configURL: configURL) { host, port in
+            ShellRunner.runStatus(
+                "/usr/bin/nc",
+                arguments: ["-z", "-w1", host, String(port)]
+            ).exitCode == 0
+        }
+        guard let endpoint, let host = endpoint.host else {
+            return configuration
+        }
+
+        let port = endpoint.port ?? 80
+        configuration.connectionProxyDictionary = [
+            "HTTPEnable": 1,
+            "HTTPProxy": host,
+            "HTTPPort": port,
+            "HTTPSEnable": 1,
+            "HTTPSProxy": host,
+            "HTTPSPort": port
+        ]
+        return configuration
+    }
+}
+
 final class RemoteRouteFetcher: Sendable {
     private static let logger = Logger(subsystem: AppConstants.helperBundleID, category: "RemoteRouteFetcher")
 
     private let cacheURL: URL
+    private let proxyConfigURL: URL
 
-    init(cacheURL: URL = ConfigPaths.remoteRouteCache) {
+    init(
+        cacheURL: URL = ConfigPaths.remoteRouteCache,
+        proxyConfigURL: URL = ConfigPaths.consoleUserProxyConfig
+    ) {
         self.cacheURL = cacheURL
+        self.proxyConfigURL = proxyConfigURL
     }
 
     func fetch(_ urlString: String) -> [String] {
@@ -32,7 +63,8 @@ final class RemoteRouteFetcher: Sendable {
         let semaphore = DispatchSemaphore(value: 0)
         nonisolated(unsafe) var fetchedData: Data?
 
-        let task = URLSession.shared.dataTask(with: url) { data, response, _ in
+        let session = URLSession(configuration: ProxySettings.sessionConfiguration(configURL: proxyConfigURL))
+        let task = session.dataTask(with: url) { data, response, _ in
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                 fetchedData = data
             }
@@ -40,6 +72,7 @@ final class RemoteRouteFetcher: Sendable {
         }
         task.resume()
         _ = semaphore.wait(timeout: .now() + 20)
+        session.invalidateAndCancel()
 
         guard let data = fetchedData, let content = String(data: data, encoding: .utf8) else {
             Self.logger.warning("Failed to fetch remote routes from \(urlString)")
