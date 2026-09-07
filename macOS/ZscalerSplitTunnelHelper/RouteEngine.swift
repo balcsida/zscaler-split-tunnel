@@ -38,10 +38,19 @@ enum RouteEngine {
         let flag = isIPv6 ? "-inet6" : "-net"
         let result = ShellRunner.runCapturingStderr("/sbin/route",
             arguments: ["-n", "delete", flag, destination])
-        if result.exitCode == 0 {
+        let deleted = deleteSucceeded(exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr)
+        if deleted {
             logger.info("Deleted route \(destination, privacy: .public)")
         }
-        return result.exitCode == 0
+        return deleted
+    }
+
+    /// `route delete` exits 0 even when the kernel answers ESRCH ("not in table"),
+    /// so the exit code alone over-reports removals — e.g. a sweep on a network
+    /// where Zscaler never installed its broad routes would still log 15 deletions.
+    static func deleteSucceeded(exitCode: Int32, stdout: String, stderr: String) -> Bool {
+        guard exitCode == 0 else { return false }
+        return !"\(stdout)\n\(stderr)".lowercased().contains("not in table")
     }
 
     /// Replaces any existing route to `destination` with a fresh one via `gateway`.

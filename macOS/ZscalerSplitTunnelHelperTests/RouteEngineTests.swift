@@ -1,6 +1,17 @@
 import XCTest
 
 final class RouteEngineTests: XCTestCase {
+    func testDeleteIsNotCountedWhenRouteWasNotInTable() {
+        // route(8) exits 0 for ESRCH and only reports the miss on stderr.
+        XCTAssertFalse(RouteEngine.deleteSucceeded(
+            exitCode: 0, stdout: "", stderr: "route: writing to routing socket: not in table\ndelete net 1: not in table\n"
+        ))
+        XCTAssertTrue(RouteEngine.deleteSucceeded(
+            exitCode: 0, stdout: "delete net 1: gateway 100.64.0.1\n", stderr: ""
+        ))
+        XCTAssertFalse(RouteEngine.deleteSucceeded(exitCode: 77, stdout: "", stderr: "route: must be root"))
+    }
+
     func testParsesScopedLinkLocalIPv6DefaultGateway() {
         let gateway = RouteEngine.parseIPv6DefaultGateway(routeGetOutput: """
            route to: default

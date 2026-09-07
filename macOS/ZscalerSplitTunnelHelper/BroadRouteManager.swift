@@ -21,9 +21,9 @@ enum BroadRouteManager {
 
         // Remove default IPv6 route through Zscaler interface
         if let zscalerInterface = RouteEngine.detectZscalerInterface() {
-            let exitCode = ShellRunner.runSilent("/sbin/route",
+            let result = ShellRunner.runCapturingStderr("/sbin/route",
                 arguments: ["-n", "delete", "-inet6", "default", "-interface", zscalerInterface])
-            if exitCode == 0 {
+            if RouteEngine.deleteSucceeded(exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr) {
                 logger.info("Removed default IPv6 route through \(zscalerInterface)")
                 removedCount += 1
             }
