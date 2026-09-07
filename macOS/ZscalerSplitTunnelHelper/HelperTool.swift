@@ -6,6 +6,10 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
     private let monitorLoop = MonitorLoop()
     private let statusQueue = DispatchQueue(label: "com.zscaler-split-tunnel.helper.status", qos: .utility)
     private let statusCache = HelperStatusCache()
+    /// Owned here, not by `MonitorLoop`: the shell proxy environment must track
+    /// network changes even while monitoring is stopped or Zscaler is killed.
+    private let proxyNetworkMonitor = NetworkChangeMonitor()
+    private let proxyQueue = DispatchQueue(label: "com.zscaler-split-tunnel.helper.proxy", qos: .utility)
 
     override init() {
         super.init()
@@ -13,6 +17,22 @@ final class HelperTool: NSObject, NSXPCListenerDelegate, HelperToolProtocol, @un
         statusQueue.async { [weak self] in
             self?.refreshLiveStatus()
         }
+        refreshProxyEnvironment()
+        proxyNetworkMonitor.start { [weak self] in
+            self?.refreshProxyEnvironment()
+        }
+    }
+
+    private func refreshProxyEnvironment() {
+        let refresh = {
+            ProxySettings.refreshEnvironment(
+                configURL: ConfigPaths.consoleUserProxyConfig,
+                environmentURL: ConfigPaths.consoleUserProxyEnvironment
+            )
+        }
+        proxyQueue.async(execute: refresh)
+        // DNS/NAC may still be settling when the first SC event fires; re-probe once.
+        proxyQueue.asyncAfter(deadline: .now() + 10, execute: refresh)
     }
 
     // MARK: - NSXPCListenerDelegate

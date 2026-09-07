@@ -38,12 +38,23 @@ enum ProxySettings {
 
         """
 
+        // Skip the rewrite when nothing changed: network-change events arrive in
+        // bursts, and the shell only needs the file to exist with the right contents.
+        if (try? String(contentsOf: environmentURL, encoding: .utf8)) == contents {
+            return
+        }
+
         do {
             try FileManager.default.createDirectory(
                 at: environmentURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
             try contents.write(to: environmentURL, atomically: true, encoding: .utf8)
+            // Written by the root helper, sourced by the user's shell.
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o644],
+                ofItemAtPath: environmentURL.path
+            )
         } catch {
             try? FileManager.default.removeItem(at: environmentURL)
         }
