@@ -32,6 +32,9 @@ final class MonitorLoop: @unchecked Sendable {
     private static let followUpInterval: TimeInterval = 6
     private static let defaultRouteRepairCooldown: TimeInterval = 30
     private var pendingFollowUpSweeps: Int = 0
+    /// Broad routes swept since the last network change. Stays 0 when Zscaler
+    /// runs in its own trusted-network mode and never installs them.
+    private var broadRoutesRemovedSinceNetworkChange: Int = 0
 
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
@@ -66,6 +69,8 @@ final class MonitorLoop: @unchecked Sendable {
         let isRunning: Bool
         let interval: Int
         let staleRouteCleanup: HelperStatus.RouteCleanupStatus?
+        /// nil while follow-up sweeps after a network change are still pending.
+        let broadRoutesRemoved: Int?
     }
 
     /// Returns a consistent snapshot of all status properties.
@@ -84,7 +89,7 @@ final class MonitorLoop: @unchecked Sendable {
             allEthernetInterfaces: [], wifiInterface: nil, captureErrors: [],
             customRouteCount: 0, bypassRouteCount: 0, lastRefresh: nil,
             officeMode: .disabled, officeSwitchName: nil, officeWifiGateway: nil,
-            isRunning: false, interval: 0, staleRouteCleanup: nil
+            isRunning: false, interval: 0, staleRouteCleanup: nil, broadRoutesRemoved: nil
         ))
     }
 
@@ -104,7 +109,8 @@ final class MonitorLoop: @unchecked Sendable {
             officeWifiGateway: officeDetector.wifiGateway,
             isRunning: isRunning,
             interval: interval,
-            staleRouteCleanup: lastStaleRouteCleanup
+            staleRouteCleanup: lastStaleRouteCleanup,
+            broadRoutesRemoved: pendingFollowUpSweeps > 0 ? nil : broadRoutesRemovedSinceNetworkChange
         )
         snapshotLock.lock()
         _cachedSnapshot = snapshot
@@ -127,11 +133,16 @@ final class MonitorLoop: @unchecked Sendable {
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
+            self.broadRoutesRemovedSinceNetworkChange = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
             self.startCaptures()
             self.runCycle()
+            // Same grace as after a network change: Zscaler may still be
+            // reconnecting when monitoring starts, so hold the tunnel-off verdict.
+            self.scheduleFollowUpSweeps()
+            self.updateSnapshot()
         }
 
         // Event-driven network change detection via SCDynamicStore. The polling
@@ -163,6 +174,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
+            self.broadRoutesRemovedSinceNetworkChange = 0
             self.stopCaptures()
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
@@ -274,6 +286,7 @@ final class MonitorLoop: @unchecked Sendable {
         configLoader.clearCaches()
         lastConfigSignature = nil
         lastBypassGateway = nil
+        broadRoutesRemovedSinceNetworkChange = 0
 
         // Restart captures and office detection on new network
         stopCaptures()
@@ -303,8 +316,10 @@ final class MonitorLoop: @unchecked Sendable {
         reloadAndApplyRoutes(forceReplace: true)
         repairIPv6DefaultRouteIfNeeded(force: true)
         lastRefresh = Date()
-        updateSnapshot()
+        // Mark sweeps pending before publishing, so status reads "unknown" rather
+        // than "tunnel off" while Zscaler is still reconnecting.
         scheduleFollowUpSweeps()
+        updateSnapshot()
     }
 
     /// After a network change, Zscaler reconnects asynchronously and may reinstall
@@ -327,6 +342,7 @@ final class MonitorLoop: @unchecked Sendable {
             if removed > 0 {
                 self.logger.info("Follow-up sweep removed \(removed) broad route(s)")
             }
+            self.updateSnapshot()
             self.scheduleNextFollowUpSweep()
         }
     }
@@ -595,6 +611,7 @@ final class MonitorLoop: @unchecked Sendable {
     @discardableResult
     private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
         let removed = BroadRouteManager.removeBroadRoutes()
+        broadRoutesRemovedSinceNetworkChange += removed
         repairIPv6DefaultRouteIfNeeded(force: removed > 0)
         return removed
     }

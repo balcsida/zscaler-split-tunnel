@@ -96,6 +96,7 @@
 		E353C142EF6338D648822168 /* DNSFlush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8CC8E1E202FD973DB9D5E3 /* DNSFlush.swift */; };
 		E4799B874759816452A68970 /* BroadRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320ED541D2452582E1D2BF6F /* BroadRoute.swift */; };
 		E5AD9C656CB0A1DCB92DD942 /* RemoteRouteFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */; };
+		E7E1A5EE8874D0856F7F43ED /* HelperStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76A261277E60D1C57AF613A9 /* HelperStatusTests.swift */; };
 		EBE10272A9F09B876A85A1FB /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		ED06CAB5B6DAE8AE695121DC /* HelperStatusCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CACC854CCC59F099A26672 /* HelperStatusCache.swift */; };
 		F17379F840CA601A95B87AF2 /* RouteEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */; };
@@ -151,6 +152,7 @@
 		725D72DA06B4F68E4A028B5D /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		745D89BE5EDAFF6597D1A8A2 /* ReconciliationSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconciliationSchedule.swift; sourceTree = "<group>"; };
 		753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconciliationScheduleTests.swift; sourceTree = "<group>"; };
+		76A261277E60D1C57AF613A9 /* HelperStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperStatusTests.swift; sourceTree = "<group>"; };
 		76A2A1B79305BB4AC5A7AA00 /* HelperStatusCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperStatusCacheTests.swift; sourceTree = "<group>"; };
 		79A0C157F5092CDDBE7C328E /* ZscalerProcessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerProcessManager.swift; sourceTree = "<group>"; };
 		7AF6FDEF33313670F0ACF124 /* PacketCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketCapture.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 			children = (
 				A134B2B8760D087B663FAD7C /* HelperConnectionTests.swift */,
 				ABBEAC25477107623B650BCE /* HelperInstallerTests.swift */,
+				76A261277E60D1C57AF613A9 /* HelperStatusTests.swift */,
 			);
 			path = ZscalerSplitTunnelTests;
 			sourceTree = "<group>";
@@ -717,6 +720,7 @@
 				691E76B2BB7C160C17A38F04 /* HelperConnectionTests.swift in Sources */,
 				BF2CCDA2E1B79F11F0EF3623 /* HelperInstaller.swift in Sources */,
 				4842503A62EACBDDD8CCAD76 /* HelperInstallerTests.swift in Sources */,
+				E7E1A5EE8874D0856F7F43ED /* HelperStatusTests.swift in Sources */,
 				AE4BBE75E459F55D028E0521 /* XPCProtocol.swift in Sources */,
 				65BE499F62ABD9943225F0BF /* XPCTypes.swift in Sources */,
 			);
