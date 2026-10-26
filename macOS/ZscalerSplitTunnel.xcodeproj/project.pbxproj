@@ -25,6 +25,7 @@
 		3487DDC23B35EF0670681FAC /* ProxySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BC1CCB987FD0CF3775BA22 /* ProxySettings.swift */; };
 		39F16B8EBA377031E76DD508 /* ShellRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */; };
 		3A79631B55EA30D7A28DAA4B /* IPValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB0B04869C3F2898F38CC00 /* IPValidator.swift */; };
+		3AAF69823C2B5F08C0910F29 /* PFRouteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9669D6077A510D309EB933BC /* PFRouteEngine.swift */; };
 		3C04144D32B4D0C282C58BDF /* ProxySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1BC1CCB987FD0CF3775BA22 /* ProxySettings.swift */; };
 		4608FAAAC91BFECD7C039AAA /* OfficeModeTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1161006D298CAE83823215 /* OfficeModeTab.swift */; };
 		46B6E24159BF8698E983433B /* ConfigEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4365D5243E404771C030B1 /* ConfigEntry.swift */; };
@@ -48,6 +49,7 @@
 		70403435D4EA296E98789134 /* OfficeNetworkDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D3A8FC66628944751E0C667 /* OfficeNetworkDetector.swift */; };
 		72726C63E3458F59C0F589A7 /* ConfigLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE4A49FAAF03951184D4888 /* ConfigLoader.swift */; };
 		740F681AA3A8DDC534767B3A /* ShellRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE05F7489E1A2FEBA9BF7CB /* ShellRunner.swift */; };
+		784946CDDD42AB56F6AC05B1 /* PFRouteEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEA163F3643D70ECF449C80 /* PFRouteEngineTests.swift */; };
 		78E31F320AC05EC8990B3096 /* ConfigFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC472DA44A91A33E8615D785 /* ConfigFile.swift */; };
 		7AE2F057265FBC937EF406D1 /* ZscalerInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80966A06876C24E8831C3FA2 /* ZscalerInterface.swift */; };
 		7B277C5D0F4B2EACAA10778E /* DeviceField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D766A5D11F156626BFC073E /* DeviceField.swift */; };
@@ -186,6 +188,7 @@
 		C85C77203378AF51E2A78185 /* BroadRouteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BroadRouteManager.swift; sourceTree = "<group>"; };
 		CD3BF3E104EB510C0674BCCC /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		CFB0B04869C3F2898F38CC00 /* IPValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPValidator.swift; sourceTree = "<group>"; };
+		CFEA163F3643D70ECF449C80 /* PFRouteEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PFRouteEngineTests.swift; sourceTree = "<group>"; };
 		D2C151D0D47F7C428DA0DA3D /* DNSResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSResolver.swift; sourceTree = "<group>"; };
 		D6427B1BAD7568B4BAF2A72E /* ZscalerSplitTunnelHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = ZscalerSplitTunnelHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9A0CBBF060A06E3ABAD0285 /* RemoteRouteFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRouteFetcher.swift; sourceTree = "<group>"; };
@@ -267,6 +270,7 @@
 				FA15259E900D1771E55FF7CE /* DNSFlushTests.swift */,
 				8FB2C7DA287EF39B963EEFAF /* DNSResolverTests.swift */,
 				76A2A1B79305BB4AC5A7AA00 /* HelperStatusCacheTests.swift */,
+				CFEA163F3643D70ECF449C80 /* PFRouteEngineTests.swift */,
 				0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */,
 				753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */,
 				341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */,
@@ -632,6 +636,8 @@
 				CB407F20DA0A180704860E14 /* HelperStatusCache.swift in Sources */,
 				BB72963807DF233F437405EA /* HelperStatusCacheTests.swift in Sources */,
 				3A79631B55EA30D7A28DAA4B /* IPValidator.swift in Sources */,
+				3AAF69823C2B5F08C0910F29 /* PFRouteEngine.swift in Sources */,
+				784946CDDD42AB56F6AC05B1 /* PFRouteEngineTests.swift in Sources */,
 				3C04144D32B4D0C282C58BDF /* ProxySettings.swift in Sources */,
 				8855908620F421D393B67DB2 /* ProxySettingsTests.swift in Sources */,
 				98F74A35C55FF7579BE9607E /* ReconciliationSchedule.swift in Sources */,
