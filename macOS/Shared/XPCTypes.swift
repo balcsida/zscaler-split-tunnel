@@ -25,6 +25,11 @@ struct HelperStatus: Codable, Sendable {
     var discoveredDevice: DiscoveredDeviceInfo?
     var captureStatus: CaptureStatus?
     var staleRouteCleanup: RouteCleanupStatus?
+    /// Broad routes the monitor removed since the last network change; nil while
+    /// the post-change sweeps are still pending. Zero means Zscaler never
+    /// installed them here (its own trusted-network mode) and there is nothing
+    /// to split.
+    var broadRoutesRemoved: Int?
 
     struct CaptureStatus: Codable, Sendable {
         var activeInterfaces: [String]
@@ -49,7 +54,7 @@ struct HelperStatus: Codable, Sendable {
     var splitTunnelState: SplitTunnelState {
         if !zscalerRunning { return .inactive }
         if broadRoutesPresent.ipv4Present == 0 && broadRoutesPresent.ipv6Present == 0 {
-            return .active
+            return isMonitoring && broadRoutesRemoved == 0 ? .tunnelOff : .active
         }
         return .partial
     }
@@ -59,6 +64,9 @@ enum SplitTunnelState: String, Codable, Sendable {
     case active
     case partial
     case inactive
+    /// Zscaler is running but installed no broad routes: it is bypassing the
+    /// tunnel on its own (trusted network), so split tunneling is a no-op.
+    case tunnelOff
     case unknown
 }
 

@@ -3,32 +3,28 @@ import os
 
 enum DNSFlush {
     private static let logger = Logger(subsystem: AppConstants.helperBundleID, category: "DNSFlush")
+    private static let recoveryTimeout: TimeInterval = 10
 
-    static func flush() {
-        let dscacheutil = Process()
-        dscacheutil.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
-        dscacheutil.arguments = ["-flushcache"]
-        dscacheutil.standardOutput = FileHandle.nullDevice
-        dscacheutil.standardError = FileHandle.nullDevice
-        do {
-            try dscacheutil.run()
-            dscacheutil.waitUntilExit()
-        } catch {
-            logger.error("Failed to run dscacheutil: \(error.localizedDescription)")
+    @discardableResult
+    static func flush(
+        runSilent: (String, [String], TimeInterval) -> Int32 = {
+            ShellRunner.runSilent($0, arguments: $1, timeout: $2)
+        }
+    ) -> Bool {
+        let dscacheExit = runSilent("/usr/bin/dscacheutil", ["-flushcache"], recoveryTimeout)
+        if dscacheExit != 0 {
+            logger.error("dscacheutil DNS flush failed with exit code \(dscacheExit)")
         }
 
-        let killall = Process()
-        killall.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        killall.arguments = ["-HUP", "mDNSResponder"]
-        killall.standardOutput = FileHandle.nullDevice
-        killall.standardError = FileHandle.nullDevice
-        do {
-            try killall.run()
-            killall.waitUntilExit()
-        } catch {
-            logger.error("Failed to run killall mDNSResponder: \(error.localizedDescription)")
+        let killallExit = runSilent("/usr/bin/killall", ["-HUP", "mDNSResponder"], recoveryTimeout)
+        if killallExit != 0 {
+            logger.error("mDNSResponder DNS flush failed with exit code \(killallExit)")
         }
 
-        logger.info("Flushed macOS system DNS cache")
+        if dscacheExit == 0, killallExit == 0 {
+            logger.info("Flushed macOS system DNS cache")
+            return true
+        }
+        return false
     }
 }

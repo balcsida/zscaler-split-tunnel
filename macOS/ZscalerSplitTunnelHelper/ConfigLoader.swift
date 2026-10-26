@@ -79,7 +79,11 @@ final class ConfigLoader: Sendable {
                     }
                     let ips = dnsResolver.resolve(normalized)
                     for ip in ips {
-                        let candidate = ip.contains("/") ? ip : "\(ip)/32"
+                        // Bare resolved addresses become host routes; the host
+                        // prefix length is family-specific (/32 on an IPv6
+                        // address would cover the provider's whole allocation).
+                        let hostPrefix = IPValidator.isIPv6(ip) ? "128" : "32"
+                        let candidate = ip.contains("/") ? ip : "\(ip)/\(hostPrefix)"
                         if seen.insert(candidate).inserted {
                             routes.append(candidate)
                         }

@@ -68,6 +68,7 @@ struct StatusView: View {
         case .active: return "Active"
         case .partial: return "Partial"
         case .inactive: return "Inactive"
+        case .tunnelOff: return "Tunnel Off (trusted network)"
         case .unknown: return "Unknown"
         }
     }
@@ -77,6 +78,7 @@ struct StatusView: View {
         case .active: return .green
         case .partial: return .orange
         case .inactive: return .red
+        case .tunnelOff: return .blue
         case .unknown: return .secondary
         }
     }

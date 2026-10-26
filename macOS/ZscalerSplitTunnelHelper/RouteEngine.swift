@@ -38,10 +38,19 @@ enum RouteEngine {
         let flag = isIPv6 ? "-inet6" : "-net"
         let result = ShellRunner.runCapturingStderr("/sbin/route",
             arguments: ["-n", "delete", flag, destination])
-        if result.exitCode == 0 {
+        let deleted = deleteSucceeded(exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr)
+        if deleted {
             logger.info("Deleted route \(destination, privacy: .public)")
         }
-        return result.exitCode == 0
+        return deleted
+    }
+
+    /// `route delete` exits 0 even when the kernel answers ESRCH ("not in table"),
+    /// so the exit code alone over-reports removals — e.g. a sweep on a network
+    /// where Zscaler never installed its broad routes would still log 15 deletions.
+    static func deleteSucceeded(exitCode: Int32, stdout: String, stderr: String) -> Bool {
+        guard exitCode == 0 else { return false }
+        return !"\(stdout)\n\(stderr)".lowercased().contains("not in table")
     }
 
     /// Replaces any existing route to `destination` with a fresh one via `gateway`.
@@ -71,6 +80,15 @@ enum RouteEngine {
                 replaceBypassRoute(destination: destination, gateway: gateway, isIPv6: isIPv6)
             }
         )
+    }
+
+    static func shouldForceReplaceBypassRoutes(
+        forceReplace: Bool,
+        gatewayIsIPv6: Bool,
+        lastBypassGateway: String?,
+        gateway: String
+    ) -> Bool {
+        forceReplace || (!gatewayIsIPv6 && lastBypassGateway != gateway)
     }
 
     static func ensureBypassRoute(
@@ -145,6 +163,32 @@ enum RouteEngine {
         return nil
     }
 
+    /// Returns the IPv6 default gateway for direct overrides, or nil when
+    /// absent or owned by a tunnel interface (routing "direct" overrides
+    /// into the Zscaler utun would defeat them). Link-local gateways keep
+    /// their `%interface` scope — `route add -inet6` requires it.
+    static func getIPv6DefaultGateway() -> String? {
+        let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", "-inet6", "default"])
+        guard let output else { return nil }
+        return parseIPv6DefaultGateway(routeGetOutput: output)
+    }
+
+    static func parseIPv6DefaultGateway(routeGetOutput: String) -> String? {
+        var gateway: String?
+        var interface: String?
+        for line in routeGetOutput.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("gateway:") {
+                gateway = trimmed.dropFirst("gateway:".count).trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("interface:") {
+                interface = trimmed.dropFirst("interface:".count).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        guard let gateway, !gateway.isEmpty else { return nil }
+        if let interface, interface.hasPrefix("utun") { return nil }
+        return gateway
+    }
+
     static func getDefaultInterface() -> String? {
         let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", "default"])
         guard let output else { return nil }
@@ -175,13 +219,9 @@ enum RouteEngine {
     }
 
     @discardableResult
-    static func flushStaleGatewayHostRoutes(
-        expectedGateway: String,
-        ownedDestinations: [String]? = nil
-    ) -> Int {
+    static func flushStaleGatewayHostRoutes(expectedGateway: String) -> Int {
         flushStaleGatewayHostRoutes(
             expectedGateway: expectedGateway,
-            ownedDestinations: ownedDestinations,
             netstatOutput: {
                 let (output, _) = ShellRunner.run("/usr/sbin/netstat", arguments: ["-rn", "-f", "inet"])
                 return output
@@ -199,12 +239,10 @@ enum RouteEngine {
 
     static func flushStaleGatewayHostRoutes(
         expectedGateway: String,
-        ownedDestinations: [String]? = nil,
         netstatOutput: () -> String?,
         deleteHostRoute: (String) -> Bool
     ) -> Int {
         guard isIPv4Address(expectedGateway), let output = netstatOutput() else { return 0 }
-        let ownedHosts = ownedDestinations.map(ownedIPv4HostRoutes)
 
         var flushed = 0
         for line in output.components(separatedBy: "\n") {
@@ -218,7 +256,6 @@ enum RouteEngine {
 
             guard let host = hostAddress(fromIPv4HostRoute: destination),
                   gateway != expectedGateway,
-                  ownedHosts?.contains(host) ?? true,
                   flags.contains("G"),
                   !netif.hasPrefix("utun"),
                   !isLinkLayerGateway(gateway),
@@ -292,6 +329,15 @@ enum RouteEngine {
         let (output, exitCode) = ShellRunner.run("/sbin/route", arguments: args)
         guard exitCode == 0, let output else { return false }
 
+        return routeGetOutputIndicatesInstalledRoute(
+            destination: destination,
+            expectedGateway: expectedGateway,
+            isIPv6: isIPv6,
+            output: output
+        )
+    }
+
+    static func routeGetOutputIndicatesInstalledRoute(destination: String, expectedGateway: String?, isIPv6: Bool, output: String) -> Bool {
         var reportedDestination: String?
         var reportedGateway: String?
         var mask: String?
@@ -317,7 +363,14 @@ enum RouteEngine {
             if prefix == "32" || prefix == "128" {
                 return reportedDestination == address
             }
-            if !isIPv6, let expectedMask = ipv4Mask(forPrefix: prefix) {
+            if isIPv6 {
+                // route(8) reports IPv6 prefix routes by their base address
+                // and an IPv6-formatted mask; matching the base address (the
+                // gateway was already checked above) keeps installed prefixes
+                // like 2a0a:a440::/29 from being replaced every cycle.
+                return reportedDestination == address
+            }
+            if let expectedMask = ipv4Mask(forPrefix: prefix) {
                 return mask == expectedMask
             }
         }
@@ -367,18 +420,6 @@ enum RouteEngine {
         return expandedAbbreviatedIPv4Host(host)
     }
 
-    private static func ownedIPv4HostRoutes(from destinations: [String]) -> Set<String> {
-        Set(destinations.compactMap { destination in
-            if destination.hasSuffix("/32") {
-                return hostAddress(fromIPv4HostRoute: destination)
-            }
-            if !destination.contains("/"), isIPv4Address(destination) {
-                return destination
-            }
-            return nil
-        })
-    }
-
     private static func expandedAbbreviatedIPv4Host(_ host: String) -> String? {
         var parts = host.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
         guard (1...3).contains(parts.count) else { return nil }
@@ -414,15 +455,17 @@ enum RouteEngine {
     }
 
     static func detectZscalerInterface() -> String? {
-        let (output, _) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", AppConstants.zscalerProbeAddress])
-        guard let output else { return nil }
-        for line in output.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("interface:") {
-                let value = trimmed.dropFirst("interface:".count).trimmingCharacters(in: .whitespaces)
-                return value.isEmpty ? nil : value
-            }
-        }
-        return nil
+        let (output, exitCode) = ShellRunner.run("/sbin/route", arguments: ZscalerInterface.routeArguments)
+        guard exitCode == 0, let output else { return nil }
+        return ZscalerInterface.parse(output)
+    }
+
+    static func statusZscalerInterface() -> StatusProbe<String?> {
+        let result = ShellRunner.runStatus(
+            "/sbin/route",
+            arguments: ZscalerInterface.routeArguments
+        )
+        guard result.exitCode == 0, let output = result.output else { return .failure }
+        return .success(ZscalerInterface.parse(output))
     }
 }

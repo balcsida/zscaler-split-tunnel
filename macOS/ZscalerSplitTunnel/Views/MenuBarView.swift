@@ -54,6 +54,14 @@ struct MenuBarView: View {
     private var statusSection: some View {
         VStack(spacing: 6) {
             if let status = appState.helperStatus {
+                if status.splitTunnelState == .tunnelOff {
+                    Label("Zscaler is bypassing its tunnel on this network (trusted network). Nothing to split; traffic already goes direct.",
+                          systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 StatusRow(icon: "network", label: "Interface",
                           value: status.zscalerInterface ?? "None",
                           valueColor: status.zscalerInterface != nil ? .primary : .secondary)
@@ -238,6 +246,7 @@ struct MenuBarView: View {
         case .active: return .green
         case .partial: return .orange
         case .inactive: return .red
+        case .tunnelOff: return .blue
         case .unknown: return .secondary
         }
     }
@@ -247,6 +256,7 @@ struct MenuBarView: View {
         case .active: return "Active"
         case .partial: return "Partial"
         case .inactive: return "Inactive"
+        case .tunnelOff: return "Tunnel Off"
         case .unknown: return "Unknown"
         }
     }

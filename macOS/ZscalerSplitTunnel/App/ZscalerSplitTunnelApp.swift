@@ -29,6 +29,7 @@ struct ZscalerSplitTunnelApp: App {
         case .active: return "shield.checkered"
         case .partial: return "shield.lefthalf.filled"
         case .inactive: return "shield.slash"
+        case .tunnelOff: return "shield.lefthalf.filled.slash"
         case .unknown: return "shield"
         }
     }
