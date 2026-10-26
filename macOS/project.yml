@@ -125,6 +125,7 @@ targets:
       - path: ZscalerSplitTunnelHelper/DNSFlush.swift
       - path: ZscalerSplitTunnelHelper/HelperStatusCache.swift
       - path: ZscalerSplitTunnelHelper/IPValidator.swift
+      - path: ZscalerSplitTunnelHelper/PFRouteEngine.swift
       - path: ZscalerSplitTunnelHelper/RemoteRouteFetcher.swift
       - path: ZscalerSplitTunnelHelper/ReconciliationSchedule.swift
       - path: ZscalerSplitTunnelHelper/RouteEngine.swift
