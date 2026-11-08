@@ -12,6 +12,27 @@ final class RouteEngineTests: XCTestCase {
         XCTAssertFalse(RouteEngine.deleteSucceeded(exitCode: 77, stdout: "", stderr: "route: must be root"))
     }
 
+    func testParsesIPv6DefaultRouteInterface() {
+        // BroadRouteManager only deletes the IPv6 default when this matches the
+        // Zscaler interface, because `route delete -interface` would drop en0's.
+        XCTAssertEqual(RouteEngine.parseRouteInterface(routeGetOutput: """
+           route to: ::
+        destination: ::
+               mask: default
+            gateway: fe80::962a:6fff:feca:9067%en0
+          interface: en0
+              flags: <UP,GATEWAY,DONE,STATIC,PRCLONING>
+        """), "en0")
+        XCTAssertEqual(RouteEngine.parseRouteInterface(routeGetOutput: """
+           route to: ::
+        destination: ::
+               mask: default
+          interface: utun4
+              flags: <UP,DONE,STATIC>
+        """), "utun4")
+        XCTAssertNil(RouteEngine.parseRouteInterface(routeGetOutput: "route: route has not been found\n"))
+    }
+
     func testParsesScopedLinkLocalIPv6DefaultGateway() {
         let gateway = RouteEngine.parseIPv6DefaultGateway(routeGetOutput: """
            route to: default
