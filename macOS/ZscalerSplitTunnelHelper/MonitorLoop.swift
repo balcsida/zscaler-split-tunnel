@@ -36,8 +36,10 @@ final class MonitorLoop: @unchecked Sendable {
     private static let defaultRouteRepairCooldown: TimeInterval = 30
     private var pendingFollowUpSweeps: Int = 0
     /// Broad routes swept since the last network change. Stays 0 when Zscaler
-    /// runs in its own trusted-network mode and never installs them.
-    private var broadRoutesRemovedSinceNetworkChange: Int = 0
+    /// runs in its own trusted-network mode and never installs them. nil until
+    /// a network change or a sweep: after a helper restart the routes may have
+    /// been swept already, so a fresh 0 would wrongly read as "tunnel off".
+    private var broadRoutesRemovedSinceNetworkChange: Int?
 
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
@@ -136,8 +138,8 @@ final class MonitorLoop: @unchecked Sendable {
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
-            self.broadRoutesRemovedSinceNetworkChange = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
+            self.broadRoutesRemovedSinceNetworkChange = self.loadSweptCount(for: self.lastNetworkSignature)
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
             self.startCaptures()
@@ -197,7 +199,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
-            self.broadRoutesRemovedSinceNetworkChange = 0
+            self.broadRoutesRemovedSinceNetworkChange = nil
             self.stopCaptures()
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
@@ -311,6 +313,7 @@ final class MonitorLoop: @unchecked Sendable {
         lastBypassGateway = nil
         broadRoutesRemovedSinceNetworkChange = 0
         warnedNoIPv6Router = false
+        saveSweptCount()
 
         // Restart captures and office detection on new network
         stopCaptures()
@@ -643,9 +646,28 @@ final class MonitorLoop: @unchecked Sendable {
     @discardableResult
     private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
         let removed = BroadRouteManager.removeBroadRoutes()
-        broadRoutesRemovedSinceNetworkChange += removed
+        if removed > 0 {
+            broadRoutesRemovedSinceNetworkChange = (broadRoutesRemovedSinceNetworkChange ?? 0) + removed
+            saveSweptCount()
+        }
         repairIPv6DefaultRouteIfNeeded(force: removed > 0)
         return removed
+    }
+
+    // MARK: - Swept-count persistence (survives helper restarts)
+
+    private func saveSweptCount() {
+        guard let count = broadRoutesRemovedSinceNetworkChange, let signature = lastNetworkSignature else { return }
+        try? "\(signature)\n\(count)\n".write(to: ConfigPaths.consoleUserBroadRouteSweepState, atomically: true, encoding: .utf8)
+    }
+
+    /// The previous instance's count, if it was recorded on the same network.
+    private func loadSweptCount(for signature: String?) -> Int? {
+        guard let signature,
+              let text = try? String(contentsOf: ConfigPaths.consoleUserBroadRouteSweepState, encoding: .utf8) else { return nil }
+        let lines = text.split(separator: "\n")
+        guard lines.count == 2, lines[0] == signature else { return nil }
+        return Int(lines[1])
     }
 
     private func configHasChanged() -> Bool {
