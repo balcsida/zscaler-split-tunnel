@@ -42,7 +42,8 @@ final class RouteTableMonitor: @unchecked Sendable {
         proc.terminationHandler = { [weak self] p in
             self?.logger.error("route monitor exited (status \(p.terminationStatus)); falling back to the periodic sweep")
             pipe.fileHandleForReading.readabilityHandler = nil
-            self?.process = nil
+            // A stop-then-start may already own a new process by the time this runs.
+            if self?.process === p { self?.process = nil }
         }
         do {
             try proc.run()
