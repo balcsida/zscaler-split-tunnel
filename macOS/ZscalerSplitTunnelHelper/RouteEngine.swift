@@ -173,6 +173,24 @@ enum RouteEngine {
         return parseIPv6DefaultGateway(routeGetOutput: output)
     }
 
+    /// Interface the current IPv6 default route uses, or nil when there is none.
+    static func getIPv6DefaultInterface() -> String? {
+        let (output, exitCode) = ShellRunner.run("/sbin/route", arguments: ["-n", "get", "-inet6", "default"])
+        guard exitCode == 0, let output else { return nil }
+        return parseRouteInterface(routeGetOutput: output)
+    }
+
+    static func parseRouteInterface(routeGetOutput: String) -> String? {
+        for line in routeGetOutput.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("interface:") {
+                let value = trimmed.dropFirst("interface:".count).trimmingCharacters(in: .whitespaces)
+                return value.isEmpty ? nil : value
+            }
+        }
+        return nil
+    }
+
     static func parseIPv6DefaultGateway(routeGetOutput: String) -> String? {
         var gateway: String?
         var interface: String?

@@ -1296,8 +1296,13 @@ remove_broad_routes() {
         fi
     done
 
-    # Also check for and remove any default IPv6 routes through Zscaler interface
-    if [ -n "$zscaler_interface" ]; then
+    # Also check for and remove any default IPv6 routes through Zscaler interface.
+    # `route delete` ignores -interface and drops whatever default is installed,
+    # so only delete when the current IPv6 default is on the Zscaler interface.
+    local ipv6_default_interface
+    ipv6_default_interface=$(route -n get -inet6 default 2>/dev/null | awk '/interface:/ {print $2}')
+    # detect_zscaler_interface falls back to en0 when Zscaler is down, so require a utun.
+    if [[ "$zscaler_interface" == utun* && "$ipv6_default_interface" == "$zscaler_interface" ]]; then
         # Remove default IPv6 routes that go through the Zscaler interface
         if sudo route -n delete -inet6 default -interface "$zscaler_interface" 2>/dev/null; then
             vlog "Removed default IPv6 route through $zscaler_interface"
