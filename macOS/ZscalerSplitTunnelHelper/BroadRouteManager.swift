@@ -32,7 +32,7 @@ enum BroadRouteManager {
         }
 
         if removedCount > 0 {
-            logger.info("Removed \(removedCount) broad routes")
+            logger.notice("Removed \(removedCount) broad routes")
         }
         return removedCount
     }

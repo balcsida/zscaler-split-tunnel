@@ -229,3 +229,52 @@ enum ShellRunner {
         string?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+
+// MARK: - Long-running commands
+
+extension ShellRunner {
+    /// A command left running in the background; stdout is delivered line by line.
+    final class StreamingProcess: @unchecked Sendable {
+        fileprivate let process = Process()
+        fileprivate let pipe = Pipe()
+        fileprivate var buffer = Data()
+
+        /// Detaches the reader first, so no more lines arrive once this returns,
+        /// then terminates the process without reporting the exit.
+        func cancel() {
+            pipe.fileHandleForReading.readabilityHandler = nil
+            process.terminationHandler = nil
+            if process.isRunning { process.terminate() }
+        }
+    }
+
+    static func stream(
+        _ path: String,
+        arguments: [String],
+        onLine: @escaping @Sendable (String) -> Void,
+        onExit: @escaping @Sendable (Int32) -> Void
+    ) throws -> StreamingProcess {
+        let stream = StreamingProcess()
+        stream.process.executableURL = URL(fileURLWithPath: path)
+        stream.process.arguments = arguments
+        stream.process.standardOutput = stream.pipe
+        stream.process.standardError = FileHandle.nullDevice
+        stream.pipe.fileHandleForReading.readabilityHandler = { handle in
+            let data = handle.availableData
+            guard !data.isEmpty else { return }
+            stream.buffer.append(data)
+            while let newline = stream.buffer.firstIndex(of: UInt8(ascii: "\n")) {
+                let line = String(decoding: stream.buffer[..<newline], as: UTF8.self)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "\r")) // pty line endings
+                stream.buffer.removeSubrange(...newline)
+                onLine(line)
+            }
+        }
+        stream.process.terminationHandler = { process in
+            stream.pipe.fileHandleForReading.readabilityHandler = nil
+            onExit(process.terminationStatus)
+        }
+        try stream.process.run()
+        return stream
+    }
+}

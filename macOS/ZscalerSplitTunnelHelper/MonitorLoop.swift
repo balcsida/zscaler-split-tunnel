@@ -5,6 +5,8 @@ final class MonitorLoop: @unchecked Sendable {
     private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "MonitorLoop")
     private let configLoader: ConfigLoader
     private let networkMonitor = NetworkChangeMonitor()
+    private let routeTableMonitor = RouteTableMonitor()
+    private var pendingBroadRouteSweep: DispatchWorkItem?
 
     let officeDetector = OfficeNetworkDetector()
 
@@ -155,6 +157,23 @@ final class MonitorLoop: @unchecked Sendable {
             self.queue.async { [weak self] in self?.handleNetworkChangeEvent() }
         }
 
+        // Zscaler adds its broad routes in a burst of about 10; sweep once,
+        // shortly after the burst, instead of waiting for the next tick.
+        routeTableMonitor.start { [weak self] in
+            guard let self else { return }
+            self.queue.async { [weak self] in
+                guard let self, self.isRunning else { return }
+                self.pendingBroadRouteSweep?.cancel()
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self, self.isRunning else { return }
+                    self.sweepBroadRoutesAndRepairIPv6Default()
+                    self.updateSnapshot()
+                }
+                self.pendingBroadRouteSweep = work
+                self.queue.asyncAfter(deadline: .now() + .milliseconds(250), execute: work)
+            }
+        }
+
         // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now() + .seconds(interval), repeating: .seconds(interval))
@@ -167,9 +186,12 @@ final class MonitorLoop: @unchecked Sendable {
 
     func stop() {
         networkMonitor.stop()
+        routeTableMonitor.stop()
         queue.sync { [weak self] in
             guard let self else { return }
             self.isRunning = false
+            self.pendingBroadRouteSweep?.cancel()
+            self.pendingBroadRouteSweep = nil
             self.lastDefaultRouteRepairAttempt = nil
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.timer?.cancel()
