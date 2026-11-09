@@ -69,4 +69,17 @@ final class ShellRunnerTests: XCTestCase {
         XCTAssertTrue(results.allSatisfy { $0.exitCode == ShellRunner.timeoutExitCode })
         XCTAssertLessThan(Date().timeIntervalSince(started), 5)
     }
+
+    func testStreamDeliversLinesAndExit() throws {
+        final class Lines: @unchecked Sendable { var values: [String] = [] }
+        let lines = Lines()
+        let exited = expectation(description: "exit")
+        _ = try ShellRunner.stream(
+            "/bin/sh", arguments: ["-c", "printf 'a\\r\\nb\\n'; exit 3"],
+            onLine: { lines.values.append($0) },
+            onExit: { status in XCTAssertEqual(status, 3); exited.fulfill() }
+        )
+        wait(for: [exited], timeout: 5)
+        XCTAssertEqual(lines.values, ["a", "b"])
+    }
 }

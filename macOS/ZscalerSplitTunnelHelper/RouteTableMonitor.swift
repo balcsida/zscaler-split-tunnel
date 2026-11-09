@@ -9,55 +9,39 @@ import os
 /// to 30s and Zscaler usually failed to reconnect inside it.
 final class RouteTableMonitor: @unchecked Sendable {
     private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "RouteTableMonitor")
-    private var process: Process?
-    private let parser = Parser()
-    private var buffer = Data()
+    private var stream: ShellRunner.StreamingProcess?
+    private var parser = Parser()
 
     func start(onBroadRouteAdded: @escaping @Sendable () -> Void) {
-        guard process == nil else { return }
-        let proc = Process()
-        // route(8) fully buffers stdout when it is a pipe, so the last message of
-        // a burst could sit unread for minutes. A pty makes it line-buffered.
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/script")
-        proc.arguments = ["-q", "/dev/null", "/sbin/route", "-n", "monitor"]
-        let pipe = Pipe()
-        proc.standardOutput = pipe
-        proc.standardError = FileHandle.nullDevice
-        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            guard let self else { return }
-            let data = handle.availableData
-            guard !data.isEmpty else { return }
-            self.buffer.append(data)
-            while let newline = self.buffer.firstIndex(of: UInt8(ascii: "\n")) {
-                let line = String(decoding: self.buffer[..<newline], as: UTF8.self)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\r"))
-                self.buffer.removeSubrange(...newline)
-                if let destination = self.parser.feed(line) {
+        guard stream == nil else { return }
+        parser = Parser()
+        do {
+            // route(8) fully buffers stdout when it is a pipe, so the last message of
+            // a burst could sit unread for minutes. A pty makes it line-buffered.
+            stream = try ShellRunner.stream(
+                "/usr/bin/script", arguments: ["-q", "/dev/null", "/sbin/route", "-n", "monitor"],
+                onLine: { [weak self] line in
+                    guard let self, let destination = self.parser.feed(line) else { return }
                     // notice: info lines are not persisted, and this is the line that proves the fix.
                     self.logger.notice("Broad route \(destination, privacy: .public) added, sweeping")
                     onBroadRouteAdded()
+                },
+                onExit: { [weak self] status in
+                    self?.logger.error("route monitor exited (status \(status)); falling back to the periodic sweep")
+                    self?.stream = nil
                 }
-            }
-        }
-        proc.terminationHandler = { [weak self] p in
-            self?.logger.error("route monitor exited (status \(p.terminationStatus)); falling back to the periodic sweep")
-            pipe.fileHandleForReading.readabilityHandler = nil
-            // A stop-then-start may already own a new process by the time this runs.
-            if self?.process === p { self?.process = nil }
-        }
-        do {
-            try proc.run()
-            process = proc
+            )
             logger.notice("Started routing table monitor")
         } catch {
             logger.error("Failed to start route monitor: \(error.localizedDescription, privacy: .public)")
         }
     }
 
+    /// `cancel()` detaches the reader before terminating, so a following `start`
+    /// never shares the parser with the old process.
     func stop() {
-        process?.terminationHandler = nil
-        process?.terminate()
-        process = nil
+        stream?.cancel()
+        stream = nil
     }
 
     /// Line-by-line parser for `route -n monitor` output. Returns the destination
