@@ -138,8 +138,8 @@ final class MonitorLoop: @unchecked Sendable {
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
-            self.broadRoutesRemovedSinceNetworkChange = nil
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
+            self.broadRoutesRemovedSinceNetworkChange = self.loadSweptCount(for: self.lastNetworkSignature)
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
             self.startCaptures()
@@ -313,6 +313,7 @@ final class MonitorLoop: @unchecked Sendable {
         lastBypassGateway = nil
         broadRoutesRemovedSinceNetworkChange = 0
         warnedNoIPv6Router = false
+        saveSweptCount()
 
         // Restart captures and office detection on new network
         stopCaptures()
@@ -645,9 +646,28 @@ final class MonitorLoop: @unchecked Sendable {
     @discardableResult
     private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
         let removed = BroadRouteManager.removeBroadRoutes()
-        if removed > 0 { broadRoutesRemovedSinceNetworkChange = (broadRoutesRemovedSinceNetworkChange ?? 0) + removed }
+        if removed > 0 {
+            broadRoutesRemovedSinceNetworkChange = (broadRoutesRemovedSinceNetworkChange ?? 0) + removed
+            saveSweptCount()
+        }
         repairIPv6DefaultRouteIfNeeded(force: removed > 0)
         return removed
+    }
+
+    // MARK: - Swept-count persistence (survives helper restarts)
+
+    private func saveSweptCount() {
+        guard let count = broadRoutesRemovedSinceNetworkChange, let signature = lastNetworkSignature else { return }
+        try? "\(signature)\n\(count)\n".write(to: ConfigPaths.consoleUserBroadRouteSweepState, atomically: true, encoding: .utf8)
+    }
+
+    /// The previous instance's count, if it was recorded on the same network.
+    private func loadSweptCount(for signature: String?) -> Int? {
+        guard let signature,
+              let text = try? String(contentsOf: ConfigPaths.consoleUserBroadRouteSweepState, encoding: .utf8) else { return nil }
+        let lines = text.split(separator: "\n")
+        guard lines.count == 2, lines[0] == signature else { return nil }
+        return Int(lines[1])
     }
 
     private func configHasChanged() -> Bool {

@@ -27,7 +27,8 @@ struct HelperStatus: Codable, Sendable {
     var staleRouteCleanup: RouteCleanupStatus?
     /// Broad routes the monitor removed since the last network change; nil while
     /// the post-change sweeps are still pending, or until the helper has seen a
-    /// network change or swept something since it started. Zero means Zscaler
+    /// network change or swept something (a restarted helper reuses the previous
+    /// instance's count for the same network). Zero means Zscaler
     /// never installed them here (its own trusted-network mode) and there is
     /// nothing to split.
     var broadRoutesRemoved: Int?

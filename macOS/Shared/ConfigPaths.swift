@@ -64,6 +64,12 @@ enum ConfigPaths {
         consoleUserConfigDir.appendingPathComponent("office-mode.json")
     }
 
+    /// Runtime state: network signature and broad routes swept on it, so a
+    /// restarted helper knows whether the previous instance swept anything.
+    static var consoleUserBroadRouteSweepState: URL {
+        consoleUserConfigDir.appendingPathComponent("broad-routes-swept.txt")
+    }
+
     static var officeModeConfig: URL {
         userConfigDir.appendingPathComponent("office-mode.json")
     }
