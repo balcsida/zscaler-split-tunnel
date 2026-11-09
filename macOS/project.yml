@@ -129,6 +129,7 @@ targets:
       - path: ZscalerSplitTunnelHelper/ReconciliationSchedule.swift
       - path: ZscalerSplitTunnelHelper/RouteEngine.swift
       - path: ZscalerSplitTunnelHelper/RouteReset.swift
+      - path: ZscalerSplitTunnelHelper/RouteTableMonitor.swift
       - path: ZscalerSplitTunnelHelper/ShellRunner.swift
       - path: Shared/ConfigPaths.swift
       - path: Shared/Constants.swift

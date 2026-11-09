@@ -5,6 +5,8 @@ final class MonitorLoop: @unchecked Sendable {
     private let logger = Logger(subsystem: AppConstants.helperBundleID, category: "MonitorLoop")
     private let configLoader: ConfigLoader
     private let networkMonitor = NetworkChangeMonitor()
+    private let routeTableMonitor = RouteTableMonitor()
+    private var pendingBroadRouteSweep: DispatchWorkItem?
 
     let officeDetector = OfficeNetworkDetector()
 
@@ -36,6 +38,7 @@ final class MonitorLoop: @unchecked Sendable {
     /// Broad routes swept since the last network change. Stays 0 when Zscaler
     /// runs in its own trusted-network mode and never installs them.
     private var broadRoutesRemovedSinceNetworkChange: Int = 0
+    private var lastBroadRouteRemoval: Date?
 
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
@@ -155,6 +158,23 @@ final class MonitorLoop: @unchecked Sendable {
             self.queue.async { [weak self] in self?.handleNetworkChangeEvent() }
         }
 
+        // Zscaler adds its broad routes in a burst of about 10; sweep once,
+        // shortly after the burst, instead of waiting for the next tick.
+        routeTableMonitor.start { [weak self] in
+            guard let self else { return }
+            self.queue.async { [weak self] in
+                guard let self, self.isRunning else { return }
+                self.pendingBroadRouteSweep?.cancel()
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self, self.isRunning else { return }
+                    self.sweepBroadRoutesAndRepairIPv6Default()
+                    self.updateSnapshot()
+                }
+                self.pendingBroadRouteSweep = work
+                self.queue.asyncAfter(deadline: .now() + .milliseconds(250), execute: work)
+            }
+        }
+
         // Schedule timer on background queue to avoid blocking XPC on the main RunLoop
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now() + .seconds(interval), repeating: .seconds(interval))
@@ -167,9 +187,12 @@ final class MonitorLoop: @unchecked Sendable {
 
     func stop() {
         networkMonitor.stop()
+        routeTableMonitor.stop()
         queue.sync { [weak self] in
             guard let self else { return }
             self.isRunning = false
+            self.pendingBroadRouteSweep?.cancel()
+            self.pendingBroadRouteSweep = nil
             self.lastDefaultRouteRepairAttempt = nil
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.timer?.cancel()
@@ -287,8 +310,11 @@ final class MonitorLoop: @unchecked Sendable {
         configLoader.clearCaches()
         lastConfigSignature = nil
         lastBypassGateway = nil
-        broadRoutesRemovedSinceNetworkChange = 0
         warnedNoIPv6Router = false
+        // The instant sweep usually removes Zscaler's routes before the SC event
+        // arrives; keep that count or the status would read "tunnel off".
+        let sweptJustBefore = lastBroadRouteRemoval.map { Date().timeIntervalSince($0) < 30 } ?? false
+        if !sweptJustBefore { broadRoutesRemovedSinceNetworkChange = 0 }
 
         // Restart captures and office detection on new network
         stopCaptures()
@@ -622,6 +648,7 @@ final class MonitorLoop: @unchecked Sendable {
     private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
         let removed = BroadRouteManager.removeBroadRoutes()
         broadRoutesRemovedSinceNetworkChange += removed
+        if removed > 0 { lastBroadRouteRemoval = Date() }
         repairIPv6DefaultRouteIfNeeded(force: removed > 0)
         return removed
     }
