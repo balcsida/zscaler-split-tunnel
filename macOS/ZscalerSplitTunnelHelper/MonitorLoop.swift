@@ -36,8 +36,10 @@ final class MonitorLoop: @unchecked Sendable {
     private static let defaultRouteRepairCooldown: TimeInterval = 30
     private var pendingFollowUpSweeps: Int = 0
     /// Broad routes swept since the last network change. Stays 0 when Zscaler
-    /// runs in its own trusted-network mode and never installs them.
-    private var broadRoutesRemovedSinceNetworkChange: Int = 0
+    /// runs in its own trusted-network mode and never installs them. nil until
+    /// a network change or a sweep: after a helper restart the routes may have
+    /// been swept already, so a fresh 0 would wrongly read as "tunnel off".
+    private var broadRoutesRemovedSinceNetworkChange: Int?
 
     private(set) var customRouteCount: Int = 0
     private(set) var bypassRouteCount: Int = 0
@@ -136,7 +138,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.lastIPv6DefaultRouteRepairAttempt = nil
             self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
-            self.broadRoutesRemovedSinceNetworkChange = 0
+            self.broadRoutesRemovedSinceNetworkChange = nil
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
@@ -197,7 +199,7 @@ final class MonitorLoop: @unchecked Sendable {
             self.timer?.cancel()
             self.timer = nil
             self.pendingFollowUpSweeps = 0
-            self.broadRoutesRemovedSinceNetworkChange = 0
+            self.broadRoutesRemovedSinceNetworkChange = nil
             self.stopCaptures()
             self.officeDetector.stop()
             self.lastDiscoveredDevice = nil
@@ -643,7 +645,7 @@ final class MonitorLoop: @unchecked Sendable {
     @discardableResult
     private func sweepBroadRoutesAndRepairIPv6Default() -> Int {
         let removed = BroadRouteManager.removeBroadRoutes()
-        broadRoutesRemovedSinceNetworkChange += removed
+        if removed > 0 { broadRoutesRemovedSinceNetworkChange = (broadRoutesRemovedSinceNetworkChange ?? 0) + removed }
         repairIPv6DefaultRouteIfNeeded(force: removed > 0)
         return removed
     }
