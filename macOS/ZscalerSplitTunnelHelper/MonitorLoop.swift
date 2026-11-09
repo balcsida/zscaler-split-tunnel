@@ -27,6 +27,7 @@ final class MonitorLoop: @unchecked Sendable {
     private var lastStaleRouteCleanup: HelperStatus.RouteCleanupStatus?
     private var lastDefaultRouteRepairAttempt: Date?
     private var lastIPv6DefaultRouteRepairAttempt: Date?
+    private var warnedNoIPv6Router = false
 
     private static let followUpCount: Int = 4
     private static let followUpInterval: TimeInterval = 6
@@ -287,6 +288,7 @@ final class MonitorLoop: @unchecked Sendable {
         lastConfigSignature = nil
         lastBypassGateway = nil
         broadRoutesRemovedSinceNetworkChange = 0
+        warnedNoIPv6Router = false
 
         // Restart captures and office detection on new network
         stopCaptures()
@@ -465,12 +467,20 @@ final class MonitorLoop: @unchecked Sendable {
         switch result {
         case .defaultPresent:
             lastIPv6DefaultRouteRepairAttempt = nil
+            warnedNoIPv6Router = false
             logger.debug("IPv6 default route is already present")
         case .noDefaultRouters:
             lastIPv6DefaultRouteRepairAttempt = now
-            logger.warning("Cannot repair missing IPv6 default route: no non-tunnel NDP router available")
+            // Normal on IPv4-only networks, so warn once rather than every cycle.
+            if warnedNoIPv6Router {
+                logger.debug("Cannot repair missing IPv6 default route: no non-tunnel NDP router available")
+            } else {
+                warnedNoIPv6Router = true
+                logger.warning("Cannot repair missing IPv6 default route: no non-tunnel NDP router available")
+            }
         case .repaired(let gateway, let interface):
             lastIPv6DefaultRouteRepairAttempt = nil
+            warnedNoIPv6Router = false
             logger.info("Repaired missing IPv6 default route via \(gateway, privacy: .public) on \(interface, privacy: .public)")
         case .failed(let errors):
             lastIPv6DefaultRouteRepairAttempt = now
