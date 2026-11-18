@@ -22,6 +22,8 @@ final class MonitorLoop: @unchecked Sendable {
     private(set) var isRunning = false
     private(set) var interval: Int = AppConstants.defaultMonitorInterval
     private var lastNetworkSignature: String?
+    /// Last signature whose default route was not a tunnel; DNS flushes compare against it.
+    private var lastPhysicalNetworkSignature: String?
     private var lastConfigSignature: String?
     private var lastFullRefresh: Date?
     private var lastBypassGateway: String?
@@ -139,6 +141,9 @@ final class MonitorLoop: @unchecked Sendable {
             self.lastFullRefresh = nil
             self.pendingFollowUpSweeps = 0
             self.lastNetworkSignature = NetworkDetector.getNetworkSignature()
+            self.lastPhysicalNetworkSignature = self.lastNetworkSignature.flatMap {
+                NetworkDetector.isTunnelSignature($0) ? nil : $0
+            }
             self.broadRoutesRemovedSinceNetworkChange = self.loadSweptCount(for: self.lastNetworkSignature)
             self.officeDetector.loadConfig(from: ConfigPaths.consoleUserOfficeModeConfig)
             self.officeDetector.start()
@@ -229,7 +234,7 @@ final class MonitorLoop: @unchecked Sendable {
         if let last = lastNetworkSignature, currentSignature != last {
             logger.info("Network changed from '\(last)' to '\(currentSignature)'")
             lastNetworkSignature = currentSignature
-            handleNetworkChange()
+            handleNetworkChange(signature: currentSignature)
             return
         }
         lastNetworkSignature = currentSignature
@@ -302,12 +307,20 @@ final class MonitorLoop: @unchecked Sendable {
         let previous = lastNetworkSignature ?? "(none)"
         logger.info("SC event: network changed from '\(previous, privacy: .public)' to '\(currentSignature, privacy: .public)'")
         lastNetworkSignature = currentSignature
-        handleNetworkChange()
+        handleNetworkChange(signature: currentSignature)
     }
 
-    private func handleNetworkChange() {
+    /// `signature` is the new network signature, or nil for a manual refresh.
+    private func handleNetworkChange(signature: String? = nil) {
         logger.info("Network change detected! Refreshing all routes...")
-        DNSFlush.flush()
+        if NetworkDetector.shouldFlushDNS(lastPhysicalSignature: lastPhysicalNetworkSignature, current: signature) {
+            DNSFlush.flush()
+        } else {
+            logger.info("Skipping DNS flush (no physical network change)")
+        }
+        if let signature, !NetworkDetector.isTunnelSignature(signature) {
+            lastPhysicalNetworkSignature = signature
+        }
         configLoader.clearCaches()
         lastConfigSignature = nil
         lastBypassGateway = nil

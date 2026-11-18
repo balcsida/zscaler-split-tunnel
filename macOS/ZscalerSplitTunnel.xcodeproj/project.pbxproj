@@ -15,6 +15,7 @@
 		139067A681BEEC767ADA6B37 /* ConfigPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11E9EAD53B9188BC1EA7BFEC /* ConfigPaths.swift */; };
 		15CA0250194EFBE8E43E0962 /* DefaultRouteRepairTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EFEC4E3534F0533AE48544C /* DefaultRouteRepairTests.swift */; };
 		17C19AC1226281E29B8EC6ED /* ConfigService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B460EB8BE7D9A4A2CA6F4F7 /* ConfigService.swift */; };
+		19BED3BA4C8405598FB0B632 /* NetworkDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A5FA6BFFC1B23395D5C264 /* NetworkDetectorTests.swift */; };
 		1F1616FE9A826F3E2C395A52 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35055B3F3BB879250721AB10 /* StatusView.swift */; };
 		2063BD090AA7FA0D89A6EC4E /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
 		27D3B4988E2BB90869D174A8 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
@@ -67,6 +68,7 @@
 		9A51E3F5DB8641BA147A411D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7648F2DFFF87AA760F6658A /* AppDelegate.swift */; };
 		9B3053DDBEA6018518EE71F8 /* ZscalerServiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A7927FA910B6CD8A7FA66E /* ZscalerServiceManager.swift */; };
 		9F1349AC19DED285D0BB75EE /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36025133B2E62925CAE4F99B /* Constants.swift */; };
+		9FB02723D10C125179A53C4E /* NetworkDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9FFF8C2D19E3728D7EBD57A /* NetworkDetector.swift */; };
 		A0CE0A682591FB5583065BA5 /* DeviceField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D766A5D11F156626BFC073E /* DeviceField.swift */; };
 		A32A61DD0C12B6D7EDA817F0 /* ConfigEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3705BDF249A6E3E3BAC26B67 /* ConfigEditorView.swift */; };
 		AA9665D7624A6EFE964A06B7 /* DefaultRouteRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36367CF0F42A8AA00B5C6953 /* DefaultRouteRepair.swift */; };
@@ -196,6 +198,7 @@
 		E285333A9666D9DBABE2486F /* LLDPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLDPParser.swift; sourceTree = "<group>"; };
 		E6610E2F4B6D75B364E7D148 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		EC472DA44A91A33E8615D785 /* ConfigFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigFile.swift; sourceTree = "<group>"; };
+		F1A5FA6BFFC1B23395D5C264 /* NetworkDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkDetectorTests.swift; sourceTree = "<group>"; };
 		F3A7927FA910B6CD8A7FA66E /* ZscalerServiceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZscalerServiceManager.swift; sourceTree = "<group>"; };
 		F56223CC1AE4E916FF34C088 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F611D2537433232A6BAD3171 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
@@ -270,6 +273,7 @@
 				FA15259E900D1771E55FF7CE /* DNSFlushTests.swift */,
 				8FB2C7DA287EF39B963EEFAF /* DNSResolverTests.swift */,
 				76A2A1B79305BB4AC5A7AA00 /* HelperStatusCacheTests.swift */,
+				F1A5FA6BFFC1B23395D5C264 /* NetworkDetectorTests.swift */,
 				0CC4F690F10AE240A53347E1 /* ProxySettingsTests.swift */,
 				753938F6CAC646E5D6E109BF /* ReconciliationScheduleTests.swift */,
 				341D0208B35DF13F2D6F7CE0 /* RouteEngineTests.swift */,
@@ -636,6 +640,8 @@
 				CB407F20DA0A180704860E14 /* HelperStatusCache.swift in Sources */,
 				BB72963807DF233F437405EA /* HelperStatusCacheTests.swift in Sources */,
 				3A79631B55EA30D7A28DAA4B /* IPValidator.swift in Sources */,
+				9FB02723D10C125179A53C4E /* NetworkDetector.swift in Sources */,
+				19BED3BA4C8405598FB0B632 /* NetworkDetectorTests.swift in Sources */,
 				3C04144D32B4D0C282C58BDF /* ProxySettings.swift in Sources */,
 				8855908620F421D393B67DB2 /* ProxySettingsTests.swift in Sources */,
 				98F74A35C55FF7579BE9607E /* ReconciliationSchedule.swift in Sources */,
