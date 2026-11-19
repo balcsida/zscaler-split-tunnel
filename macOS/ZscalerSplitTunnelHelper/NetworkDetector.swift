@@ -11,6 +11,22 @@ enum NetworkDetector {
         return "\(gateway):\(iface):\(ipAddr)"
     }
 
+    /// Whether a network-signature change warrants a system DNS flush. Flushing
+    /// SIGHUPs mDNSResponder, which also purges Bonjour and drops Continuity links
+    /// (Continuity Camera, Sidecar, AirDrop), so only a physical network change counts.
+    /// `current` is nil for a manual refresh; tunnel signatures (Zscaler re-adding a
+    /// default route via utun) and the first physical signature never flush.
+    static func shouldFlushDNS(lastPhysicalSignature: String?, current: String?) -> Bool {
+        guard let current, let lastPhysicalSignature, !isTunnelSignature(current) else { return false }
+        return current != lastPhysicalSignature
+    }
+
+    static func isTunnelSignature(_ signature: String) -> Bool {
+        let parts = signature.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count >= 2 else { return false }
+        return ["utun", "ipsec", "ppp"].contains { parts[1].hasPrefix($0) }
+    }
+
     static func statusNetworkSignature() -> StatusProbe<String?> {
         let route = ShellRunner.runStatus("/sbin/route", arguments: ["-n", "get", "default"])
         guard route.exitCode == 0, let output = route.output else { return .failure }

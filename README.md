@@ -196,6 +196,9 @@ is enabled.
    WiFi gateway when office mode is active.
 5. A monitor loop refreshes route state on a low-frequency interval and reacts
    to configuration or network changes.
+   It flushes the system DNS cache only when the physical network changes (not on
+   manual refreshes or Zscaler tunnel default-route flips): a flush purges Bonjour
+   and briefly drops Continuity features (Continuity Camera, Sidecar, AirDrop).
 
 ## Files and Logs
 

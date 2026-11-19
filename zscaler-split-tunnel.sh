@@ -160,18 +160,33 @@ clear_dns_cache() {
         rm -f "$REMOTE_ROUTE_CACHE_FILE"
         vlog "Cleared remote route cache"
     fi
-    # Flush macOS system DNS cache
+}
+
+# Default route through a tunnel (Zscaler re-adding its default via utun), not a physical network
+is_tunnel_signature() {
+    [[ "$1" == *:utun*:* || "$1" == *:ipsec*:* || "$1" == *:ppp*:* ]]
+}
+
+# Flush macOS system DNS cache. SIGHUP to mDNSResponder also purges Bonjour,
+# briefly dropping Continuity Camera, Sidecar and AirDrop, so only call this
+# on a physical network change.
+flush_system_dns() {
     sudo dscacheutil -flushcache 2>/dev/null
     sudo killall -HUP mDNSResponder 2>/dev/null
     vlog "Flushed macOS system DNS cache"
 }
 
-# Function to handle network change
+# Function to handle network change ($1: "flush" to also flush system DNS)
 handle_network_change() {
     log INFO "Network change detected! Refreshing all routes..."
 
     # Clear DNS cache to force re-resolution with new network
     clear_dns_cache
+    if [[ "${1:-}" == "flush" ]]; then
+        flush_system_dns
+    else
+        vlog "Skipping system DNS flush (no physical network change)"
+    fi
 
     # Remove all existing Zscaler routes and direct overrides
     remove_custom_routes
@@ -1429,6 +1444,8 @@ monitor_routes() {
     local last_network_signature=""
     last_network_signature=$(get_network_signature)
     vlog "Initial network: $last_network_signature"
+    local last_physical_signature=""
+    is_tunnel_signature "$last_network_signature" || last_physical_signature="$last_network_signature"
 
     while true; do
         # Check for network changes
@@ -1437,7 +1454,16 @@ monitor_routes() {
 
         if [[ -n "$last_network_signature" ]] && [[ "$current_network_signature" != "$last_network_signature" ]]; then
             log INFO "Network changed from '$last_network_signature' to '$current_network_signature'"
-            handle_network_change
+            if is_tunnel_signature "$current_network_signature"; then
+                handle_network_change
+            else
+                if [[ -n "$last_physical_signature" && "$current_network_signature" != "$last_physical_signature" ]]; then
+                    handle_network_change flush
+                else
+                    handle_network_change
+                fi
+                last_physical_signature="$current_network_signature"
+            fi
             last_network_signature="$current_network_signature"
             # Skip other checks this iteration since we just refreshed everything
             sleep "$INTERVAL" || true
